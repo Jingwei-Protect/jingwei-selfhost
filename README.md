@@ -1,6 +1,8 @@
 # Jingwei (Self-host)
 
-**English first.** Chinese: [README_zh.md](README_zh.md).
+<p align="left">
+  <b>English</b> | <a href="README_zh.md">简体中文</a>
+</p>
 
 A local-first **image attribution and anti-AI-washout protection toolkit** designed for artists and digital creators.
 

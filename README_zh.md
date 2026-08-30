@@ -1,6 +1,8 @@
 # 精卫 Jingwei (Self-host)
 
-**中文说明** | English: [README.md](README.md)
+<p align="left">
+  <a href="README.md">English</a> | <b>简体中文</b>
+</p>
 
 面向画师与数字艺术创作者的**本地化图像归属存证与反 AI 洗图保护工具**。
 
