@@ -49,17 +49,35 @@ docker compose up --build
 
 下面配图与矩阵里的图**同一显示宽度**。样图仅供说明（[SAMPLES-LICENSE.md](SAMPLES-LICENSE.md)）。
 
-有纹理的画（毛发、花瓣）→ 自动多半走**位移**：署名写进被推动的像素里，不是贴一层色块。
+远看全图几乎看不出差别，所以每组都加了**红框定位**，再给出**同一区域放大**。这些静图和下面矩阵配图**同一显示宽度**。
+
+有纹理的画（毛发、花瓣）→ 自动多半走**位移**：脸上的宿主像素被推进署名里，不是贴一层色块。
 
 | 保护前 | 署名·快速之后 |
 |:---:|:---:|
 | <img src="frontend/public/showcase/credit/credit-dog-before.png" width="400" alt="保护前（小狗）"> | <img src="frontend/public/showcase/credit/credit-dog-after.png" width="400" alt="署名快速后（小狗）"> |
 
-平涂插画 → 自动多半走**浅字符**：很浅的全图网点加浅色点状署名。远看仍是原画。
+| 红框：署名在哪 | 该区域放大（保护后） |
+|:---:|:---:|
+| <img src="frontend/public/showcase/credit/credit-dog-where.png" width="400" alt="小狗：红框标出脸上的精卫署名"> | <img src="frontend/public/showcase/credit/credit-dog-face-after.png" width="400" alt="小狗脸部放大（保护后）"> |
+
+| 同一区域放大（保护前） | 同一区域放大（保护后） |
+|:---:|:---:|
+| <img src="frontend/public/showcase/credit/credit-dog-face-before.png" width="400" alt="小狗脸部放大（保护前）"> | <img src="frontend/public/showcase/credit/credit-dog-face-after.png" width="400" alt="小狗脸部放大，毛发被推进精卫字形"> |
+
+平涂插画 → 自动多半走**浅字符**：很浅的全图网点，再加一处点状署名。红框是点状署名；其余画面还有更浅的网点。
 
 | 保护前 | 署名·快速之后 |
 |:---:|:---:|
 | <img src="frontend/public/showcase/credit/credit-cat-before.png" width="400" alt="保护前（猫）"> | <img src="frontend/public/showcase/credit/credit-cat-after.png" width="400" alt="署名快速后（猫）"> |
+
+| 红框：署名在哪 | 该区域放大（保护后） |
+|:---:|:---:|
+| <img src="frontend/public/showcase/credit/credit-cat-where.png" width="400" alt="猫：红框标出点状署名"> | <img src="frontend/public/showcase/credit/credit-cat-zoom-after.png" width="400" alt="猫脸部放大（保护后）"> |
+
+| 同一区域放大（保护前） | 同一区域放大（保护后） |
+|:---:|:---:|
+| <img src="frontend/public/showcase/credit/credit-cat-zoom-before.png" width="400" alt="猫脸部放大（保护前）"> | <img src="frontend/public/showcase/credit/credit-cat-zoom-after.png" width="400" alt="猫脸部放大，可见浅交叉点"> |
 
 ### 隐形层与追踪层
 
