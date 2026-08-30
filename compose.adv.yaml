@@ -1,0 +1,10 @@
+services:
+  jingwei:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime-adv
+    image: jingwei-selfhost:adv
+    environment:
+      APP_ENV: dev
+      ENABLE_ADV_PROTECT: "1"

@@ -1,0 +1,179 @@
+@property --holo-x {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.5;
+}
+
+@property --holo-y {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.5;
+}
+
+@property --holo-on {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+.holo-card-stage {
+  perspective: 900px;
+  perspective-origin: 50% 45%;
+}
+
+.holo-card {
+  --holo-x: 0.5;
+  --holo-y: 0.5;
+  --holo-on: 0;
+  --holo-rx: calc((0.5 - var(--holo-y)) * 34deg);
+  --holo-ry: calc((var(--holo-x) - 0.5) * 40deg);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 0.85rem;
+  padding: 0.13rem;
+  background: linear-gradient(145deg, #f8fafc, #94a3b8 42%, #e2e8f0 68%, #64748b);
+  box-shadow:
+    calc((var(--holo-x) - 0.5) * -36px)
+    calc((0.45 - var(--holo-y)) * 28px + 16px)
+    36px
+    rgb(15 23 42 / calc(0.16 + var(--holo-on) * 0.28));
+  transform: rotateX(var(--holo-rx)) rotateY(var(--holo-ry)) translateZ(calc(var(--holo-on) * 28px));
+  transform-origin: center center;
+  transition: --holo-x 80ms linear, --holo-y 80ms linear, --holo-on 140ms ease, box-shadow 140ms ease;
+  touch-action: none;
+  animation: holo-idle 5.2s ease-in-out infinite;
+}
+
+.holo-card.is-tracking,
+.holo-card.is-offscreen {
+  animation: none;
+}
+
+/* Idle rocks the same vars the pointer uses, so the film moves with the tilt. */
+@keyframes holo-idle {
+  0%,
+  100% {
+    --holo-x: 0.34;
+    --holo-y: 0.4;
+    --holo-on: 0.32;
+  }
+  50% {
+    --holo-x: 0.66;
+    --holo-y: 0.6;
+    --holo-on: 0.52;
+  }
+}
+
+.holo-card-face {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 0.72rem;
+  background: #fff;
+}
+
+.holo-card-face > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.holo-card-foil,
+.holo-card-glare,
+.holo-card-spark {
+  pointer-events: none;
+  position: absolute;
+  inset: 0.13rem;
+  border-radius: 0.72rem;
+}
+
+/* Iridescent fingerprint moiré, only inside the reflection band. */
+.holo-card-foil {
+  z-index: 2;
+  --grain-angle: calc(118deg + (var(--holo-x) - 0.5) * 12deg);
+  --band: linear-gradient(
+    var(--grain-angle),
+    transparent 40%,
+    #fff 47.5%,
+    #fff 52.5%,
+    transparent 60%
+  );
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.1 -0.62'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23s)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      var(--grain-angle),
+      transparent 0 0.9px,
+      rgb(186 230 253 / 0.6) 0.9px 1.3px
+    ),
+    repeating-linear-gradient(
+      calc(var(--grain-angle) + 1.1deg),
+      transparent 0 1px,
+      rgb(253 230 138 / 0.55) 1px 1.45px
+    ),
+    repeating-linear-gradient(
+      calc(var(--grain-angle) + 0.55deg),
+      transparent 0 1.1px,
+      rgb(253 164 175 / 0.5) 1.1px 1.6px
+    ),
+    linear-gradient(
+      var(--grain-angle),
+      transparent 30%,
+      rgb(186 230 253 / 0.4) 42%,
+      #7dd3fc 45.5%,
+      #fde68a 50%,
+      #fda4af 54.5%,
+      rgb(196 181 253 / 0.4) 58%,
+      transparent 70%
+    );
+  background-size: 260px 260px, auto, auto, auto, 180% 180%;
+  background-position:
+    calc(var(--holo-x) * 40px) calc(var(--holo-y) * 40px),
+    0 calc(var(--holo-y) * 22px),
+    calc(var(--holo-x) * 18px) 0,
+    calc(var(--holo-x) * -12px) calc(var(--holo-y) * 14px),
+    calc(var(--holo-x) * 120%) calc(var(--holo-y) * 120%);
+  background-blend-mode: screen, screen, screen, screen, normal;
+  mix-blend-mode: color-dodge;
+  -webkit-mask-image: var(--band);
+  mask-image: var(--band);
+  -webkit-mask-size: 180% 180%;
+  mask-size: 180% 180%;
+  -webkit-mask-position: calc(var(--holo-x) * 120%) calc(var(--holo-y) * 120%);
+  mask-position: calc(var(--holo-x) * 120%) calc(var(--holo-y) * 120%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  opacity: calc(var(--holo-on) * 0.92);
+}
+
+.holo-card-glare {
+  z-index: 3;
+  background: radial-gradient(
+    9rem circle at calc(var(--holo-x) * 100%) calc(var(--holo-y) * 100%),
+    rgb(255 255 255 / 0.72),
+    rgb(255 255 255 / 0.12) 26%,
+    transparent 52%
+  );
+  mix-blend-mode: soft-light;
+  opacity: var(--holo-on);
+}
+
+.holo-card-spark {
+  z-index: 4;
+  background: linear-gradient(
+    calc(72deg + (var(--holo-y) - 0.5) * 28deg),
+    transparent 40%,
+    rgb(255 255 255 / 0.55) 49.5%,
+    rgb(255 255 255 / 0.55) 50.5%,
+    transparent 60%
+  );
+  mix-blend-mode: overlay;
+  opacity: calc(var(--holo-on) * 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .holo-card {
+    animation: none;
+  }
+}

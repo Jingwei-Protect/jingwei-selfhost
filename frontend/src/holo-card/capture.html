@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HoloCard capture</title>
+  <link rel="stylesheet" href="./holo-card.css" />
+  <style>
+    /* Capture layout only. Foil comes from holo-card.css. */
+    html, body {
+      margin: 0;
+      background: #f7f9fc;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      padding: 0;
+    }
+    .stage-pad {
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3.1rem 2.8rem 3.4rem;
+    }
+    .holo-card-hero {
+      max-width: min(32rem, 94vw);
+      width: max-content;
+    }
+    .holo-card-hero img {
+      display: block;
+      width: auto;
+      max-width: 30rem;
+      max-height: 42rem;
+      height: auto;
+    }
+    .holo-card {
+      transition: none;
+      animation: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="stage-pad">
+    <div class="holo-card-stage">
+      <div class="holo-card holo-card-hero" id="card">
+        <span class="holo-card-foil" aria-hidden="true"></span>
+        <span class="holo-card-glare" aria-hidden="true"></span>
+        <span class="holo-card-spark" aria-hidden="true"></span>
+        <div class="holo-card-face">
+          <img id="face" alt="" />
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const img = params.get("img") || "about:blank";
+    document.getElementById("face").src = img;
+    window.setHolo = function (x, y, on) {
+      const node = document.getElementById("card");
+      node.style.setProperty("--holo-x", Number(x).toFixed(4));
+      node.style.setProperty("--holo-y", Number(y).toFixed(4));
+      node.style.setProperty("--holo-on", Number(on).toFixed(4));
+      node.classList.toggle("is-tracking", Number(on) > 0);
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+/* Titan skin — colors, surfaces, backgrounds only.
+   Typography/layout unchanged (still DM Sans + existing spacing).
+   Ref: https://getdesign.md/design-md/titan */
+
+html:has([data-theme="titan"]),
+body:has([data-theme="titan"]) {
+  background: #0a0a0e !important;
+}
+
+[data-theme="titan"] {
+  /* ── palette (no font overrides) ── */
+  --color-primary: #c9a962;
+  --color-primary-hover: #dbbe78;
+  --color-bg: #0a0a0e;
+  --color-bg-secondary: #111118;
+  --color-bg-tertiary: #181820;
+  --color-surface: #14141c;
+  --color-surface-hover: #1c1c26;
+  --color-canvas: #101016;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-soft: rgba(255, 255, 255, 0.06);
+  --color-border-light: rgba(255, 255, 255, 0.04);
+
+  --color-text-primary: #f4f1ea;
+  --color-text-secondary: #a8a29e;
+  --color-text-tertiary: #6b6560;
+
+  --color-ink: #f4f1ea;
+  --color-ink-soft: #d6d0c8;
+  --color-accent: var(--color-primary);
+  --color-accent-hover: var(--color-primary-hover);
+  --color-accent-text: #0a0a0e;
+
+  --color-success: #6ecf9a;
+  --color-success-bg: rgba(110, 207, 154, 0.12);
+  --color-warning: #e8c547;
+  --color-warning-bg: rgba(232, 197, 71, 0.1);
+  --color-danger: #e87878;
+  --color-danger-bg: rgba(232, 120, 120, 0.1);
+
+  --color-navy: #f4f1ea;
+  --color-navy-mid: #d6d0c8;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.55);
+
+  --am-line: rgba(255, 255, 255, 0.08);
+
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -8%, rgba(201, 169, 98, 0.16) 0, transparent 58%),
+    radial-gradient(circle at 88% 72%, rgba(72, 88, 140, 0.1) 0, transparent 42%),
+    radial-gradient(circle at 8% 60%, rgba(201, 169, 98, 0.06) 0, transparent 35%),
+    linear-gradient(180deg, #0d0d12 0%, var(--color-bg) 100%);
+}
+
+[data-theme="titan"] .titan-preview-banner {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(201, 169, 98, 0.1);
+  border-bottom: 1px solid rgba(201, 169, 98, 0.22);
+  font-size: var(--text-sm);
+  color: #e8d5a3;
+}
+
+[data-theme="titan"] .titan-preview-banner a {
+  color: #e8d5a3;
+  font-weight: 500;
+}
+
+/* ── chrome overrides (backgrounds / borders only) ── */
+
+[data-theme="titan"] .nav {
+  background: rgba(10, 10, 14, 0.88);
+  border-bottom-color: var(--color-border-soft);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="titan"] .nav-brand-zh,
+[data-theme="titan"] .nav-brand-en {
+  color: var(--color-text-primary);
+}
+
+[data-theme="titan"] .nav-link:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="titan"] .nav-link.active {
+  color: var(--color-primary);
+  background: rgba(201, 169, 98, 0.1);
+  border-color: rgba(201, 169, 98, 0.25);
+}
+
+[data-theme="titan"] .jingwei-logo {
+  filter: brightness(1.12);
+}
+
+[data-theme="titan"] .am-hero {
+  background:
+    radial-gradient(ellipse 75% 45% at 50% 12%, rgba(201, 169, 98, 0.14) 0, transparent 62%),
+    radial-gradient(circle at 20% 40%, rgba(90, 100, 140, 0.08) 0, transparent 40%),
+    linear-gradient(180deg, rgba(16, 16, 22, 0.4) 0%, transparent 85%);
+}
+
+[data-theme="titan"] .am-hero::before {
+  background: radial-gradient(circle, rgba(201, 169, 98, 0.12), transparent 64%);
+}
+
+[data-theme="titan"] .am-display-accent {
+  color: var(--color-primary);
+}
+
+[data-theme="titan"] .am-eyebrow {
+  color: var(--color-primary);
+}
+
+[data-theme="titan"] .am-band-dark {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(20, 20, 28, 0.6) 100%);
+  border-top-color: var(--color-border-soft);
+  border-bottom-color: var(--color-border-soft);
+}
+
+[data-theme="titan"] .am-band-stats,
+[data-theme="titan"] .am-band-cta {
+  background: transparent;
+  border-color: var(--color-border-soft);
+}
+
+[data-theme="titan"] .am-band-cta {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(201, 169, 98, 0.08), transparent 40%);
+}
+
+[data-theme="titan"] .am-cap-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--color-border-soft);
+}
+
+[data-theme="titan"] .am-cap-card:hover,
+[data-theme="titan"] .am-cap-card.is-visible:hover {
+  border-color: rgba(201, 169, 98, 0.28);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="titan"] .am-cap-num {
+  color: var(--color-primary);
+}
+
+[data-theme="titan"] .am-btn-light {
+  background: linear-gradient(135deg, #d4b56a 0%, #b8944a 100%);
+  color: var(--color-accent-text);
+  border-color: rgba(201, 169, 98, 0.4);
+  box-shadow: 0 4px 20px rgba(201, 169, 98, 0.28);
+}
+
+[data-theme="titan"] .am-btn-light:hover {
+  background: linear-gradient(135deg, #e0c278 0%, #c9a962 100%);
+  box-shadow: 0 8px 28px rgba(201, 169, 98, 0.38);
+}
+
+[data-theme="titan"] .am-btn-ghost {
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="titan"] .am-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+[data-theme="titan"] .am-btn-dark {
+  background: var(--color-text-primary);
+  color: var(--color-bg);
+  border-color: var(--color-text-primary);
+}
+
+[data-theme="titan"] .am-btn-outline-dark {
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+  background: transparent;
+}
+
+[data-theme="titan"] .card {
+  background: rgba(20, 20, 28, 0.92);
+  border-color: var(--color-border);
+  backdrop-filter: blur(10px);
+}
+
+[data-theme="titan"] .card:hover {
+  border-color: rgba(201, 169, 98, 0.22);
+}
+
+[data-theme="titan"] .form-input,
+[data-theme="titan"] .form-select {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+[data-theme="titan"] .form-input:focus,
+[data-theme="titan"] .form-select:focus {
+  border-color: rgba(201, 169, 98, 0.5);
+  box-shadow: 0 0 0 3px rgba(201, 169, 98, 0.12);
+}
+
+[data-theme="titan"] .result-card {
+  background: rgba(20, 20, 28, 0.9);
+  border-color: var(--color-border-soft);
+}
+
+[data-theme="titan"] .result-card.found {
+  background: linear-gradient(180deg, rgba(110, 207, 154, 0.12) 0%, rgba(20, 20, 28, 0.95) 100%);
+  border-color: rgba(110, 207, 154, 0.28);
+}
+
+[data-theme="titan"] .result-card code,
+[data-theme="titan"] .result-details-body code {
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--color-text-primary);
+}
+
+[data-theme="titan"] .result-details {
+  background: rgba(20, 20, 28, 0.9);
+  border-color: var(--color-border-soft);
+}
+
+[data-theme="titan"] .result-details-summary.found {
+  background: var(--color-success-bg);
+}
+
+[data-theme="titan"] .result-details-body {
+  background: var(--color-surface);
+}
+
+[data-theme="titan"] .btn-primary,
+[data-theme="titan"] .protect-submit-btn {
+  background: linear-gradient(135deg, #d4b56a 0%, #b8944a 100%);
+  color: var(--color-accent-text);
+  border-color: rgba(201, 169, 98, 0.35);
+}
+
+[data-theme="titan"] .footer,
+[data-theme="titan"] .titan-preview-foot {
+  border-top: 1px solid var(--color-border-soft);
+  color: var(--color-text-tertiary);
+}
+
+[data-theme="titan"] .footer a,
+[data-theme="titan"] .titan-preview-foot a {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="titan"] .am-scroll-bar {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="titan"] .am-scroll-bar-fill {
+  background: var(--color-primary);
+}
+
+[data-theme="titan"] .preview-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 4vw, 2.5rem) var(--space-12);
+}

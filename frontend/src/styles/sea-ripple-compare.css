@@ -1,0 +1,99 @@
+/* Side-by-side sea ripple comparison — uses original teal sea gradient */
+
+.sea-compare-page {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.sea-compare-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 20px;
+  padding: 12px 16px;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-soft);
+  font-size: var(--text-sm);
+}
+
+.sea-compare-banner a {
+  font-weight: 500;
+}
+
+.sea-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-4);
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .sea-compare-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sea-compare-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.sea-compare-panel-head h2 {
+  font-size: var(--text-lg);
+  margin-bottom: 4px;
+}
+
+.sea-compare-panel-head p {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.sea-compare-viewport {
+  position: relative;
+  height: min(72vh, 720px);
+  min-height: 420px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 2px solid #0e2f44;
+  box-shadow: var(--shadow-md);
+  --sea-ripple-fluid-opacity: 0.62;
+  --sea-ripple-mesh-opacity: 0.31;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -12%, rgba(255, 255, 255, 0.40) 0%, transparent 60%),
+    linear-gradient(
+      180deg,
+      rgba(214, 243, 246, 0.95) 0%,
+      rgba(168, 226, 232, 0.92) 22%,
+      rgba(118, 199, 213, 0.92) 48%,
+      rgba(63, 152, 175, 0.95) 75%,
+      rgba(32, 95, 122, 0.98) 100%
+    );
+}
+
+.sea-compare-viewport .pixel-sea-ripple-layer {
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  animation: none;
+}
+
+.sea-compare-viewport .pixel-sea-ripple-layer--mesh {
+  background-position: center 58%;
+}
+
+.sea-compare-placeholder {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  font-size: var(--text-sm);
+  color: rgba(14, 47, 68, 0.45);
+  pointer-events: none;
+  user-select: none;
+}

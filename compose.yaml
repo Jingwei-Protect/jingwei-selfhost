@@ -1,0 +1,14 @@
+services:
+  jingwei:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jingwei-selfhost:cpu
+    container_name: jingwei-selfhost
+    ports:
+      - "8080:8000"
+    environment:
+      APP_ENV: dev
+      ENABLE_ADV_PROTECT: "0"
+    volumes:
+      - ./data:/app/data
