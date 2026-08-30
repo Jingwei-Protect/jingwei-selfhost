@@ -49,7 +49,7 @@ Processing is CPU-heavy. Large files on a laptop are slow. Long edges above 2560
 
 Same display size as the matrix pairs below. Samples are documentation only ([SAMPLES-LICENSE.md](SAMPLES-LICENSE.md)).
 
-From far away the full pair looks almost unchanged. Each example therefore adds a **red box** on the whole picture, then the **same region enlarged** so the mark is visible. All of these stills use the same display width as the matrix pairs below.
+From far away the full pair looks almost unchanged. The second row is the **same region enlarged**, with a red box on the watermark. All stills use the same display width as the matrix pairs below.
 
 Textured art (fur, petals) → Auto usually picks **displacement**: host pixels on the face are nudged into the name, not a pasted colour stamp.
 
@@ -57,27 +57,19 @@ Textured art (fur, petals) → Auto usually picks **displacement**: host pixels 
 |:---:|:---:|
 | <img src="frontend/public/showcase/credit/credit-dog-before.png" width="400" alt="Puppy before Credit Quick"> | <img src="frontend/public/showcase/credit/credit-dog-after.png" width="400" alt="Puppy after Credit Quick"> |
 
-| Where the mark sits (red box) | That region enlarged (after) |
-|:---:|:---:|
-| <img src="frontend/public/showcase/credit/credit-dog-where.png" width="400" alt="Puppy: red box on the face where Jingwei sits"> | <img src="frontend/public/showcase/credit/credit-dog-face-after.png" width="400" alt="Puppy face crop after displacement"> |
-
 | Same region enlarged (before) | Same region enlarged (after) |
 |:---:|:---:|
-| <img src="frontend/public/showcase/credit/credit-dog-face-before.png" width="400" alt="Puppy face crop before"> | <img src="frontend/public/showcase/credit/credit-dog-face-after.png" width="400" alt="Puppy face crop after, fur nudged into Jingwei"> |
+| <img src="frontend/public/showcase/credit/credit-dog-face-before-box.png" width="400" alt="Puppy face crop before, red box where the name will sit"> | <img src="frontend/public/showcase/credit/credit-dog-face-after-box.png" width="400" alt="Puppy face crop after, red box on Jingwei in the fur"> |
 
-Flat illustration → Auto usually picks **faint characters**: a light full-frame speckle plus a dotted name. The red box is the dotted signature; the rest of the frame has an even fainter grid.
+Flat illustration → Auto usually picks **faint characters**: a light full-frame speckle plus a dotted name. The red box is that dotted signature.
 
 | Before | After Credit · Quick |
 |:---:|:---:|
 | <img src="frontend/public/showcase/credit/credit-cat-before.png" width="400" alt="Cat before Credit Quick"> | <img src="frontend/public/showcase/credit/credit-cat-after.png" width="400" alt="Cat after Credit Quick"> |
 
-| Where the mark sits (red box) | That region enlarged (after) |
-|:---:|:---:|
-| <img src="frontend/public/showcase/credit/credit-cat-where.png" width="400" alt="Cat: red box on the dotted signature"> | <img src="frontend/public/showcase/credit/credit-cat-zoom-after.png" width="400" alt="Cat face crop after faint characters"> |
-
 | Same region enlarged (before) | Same region enlarged (after) |
 |:---:|:---:|
-| <img src="frontend/public/showcase/credit/credit-cat-zoom-before.png" width="400" alt="Cat face crop before"> | <img src="frontend/public/showcase/credit/credit-cat-zoom-after.png" width="400" alt="Cat face crop after, tiny crosses and dots"> |
+| <img src="frontend/public/showcase/credit/credit-cat-zoom-before-box.png" width="400" alt="Cat crop before, red box where the dotted name will sit"> | <img src="frontend/public/showcase/credit/credit-cat-zoom-after-box.png" width="400" alt="Cat crop after, red box on the dotted Jingwei signature"> |
 
 ### Invisible and tracking layers
 
