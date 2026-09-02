@@ -30,6 +30,14 @@ export default function HomePage() {
         <Link className="btn btn-secondary" to="/verify">{zh ? '去验证' : 'Verify'}</Link>
         <Link className="btn btn-secondary" to="/guide/watermark-matrix">{zh ? '图层对照' : 'Layer matrix'}</Link>
       </p>
+      <p className="text-sm" style={{ marginTop: '1rem', maxWidth: 640, lineHeight: 1.7, opacity: 0.8 }}>
+        {zh
+          ? '如果精卫对你有用，可以支持官方（打赏给精卫，不是给这台电脑的部署者）：'
+          : 'If Jingwei is useful, you can support the official project (not whoever is running this machine): '}
+        <a href="https://ko-fi.com/jingwei2026" target="_blank" rel="noreferrer">
+          {zh ? 'Ko-fi 支持精卫' : 'Support Jingwei on Ko-fi'}
+        </a>
+      </p>
       <h2 style={{ marginTop: '3rem' }}>{zh ? '署名·快速：狗（纹理）' : 'Quick Credit: puppy (texture)'}</h2>
       <p className="text-sm" style={{ maxWidth: 720, lineHeight: 1.65 }}>
         Auto sees fur/flowers as texture, so it nudges host pixels into the name (not a pasted color stamp).

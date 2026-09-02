@@ -181,6 +181,12 @@ High-frequency dot patterns embedded in background gradients. AI smoothing opera
 2. The verification engine automatically analyzes the file for C2PA manifests, JW declarations, tracking anchors, DWT payloads, LSB content, and EXIF/IPTC metadata.
 3. For tracking anchors on cropped or screenshot images, enter the **exact creator signature** used during protection.
 
+## Support Jingwei
+
+Self-host is free. If you want to fund continued work, tips go to the **Jingwei project**, not whoever is running this Docker instance:
+
+- [Ko-fi](https://ko-fi.com/jingwei2026)
+
 ## License
 
 - **Code:** [MIT](LICENSE) © 精卫 Jingwei
