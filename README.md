@@ -4,20 +4,22 @@
   <b>English</b> | <a href="README_zh.md">简体中文</a>
 </p>
 
-A local-first **image attribution and anti-AI-washout protection toolkit** designed for artists and digital creators.
+**Local layered marks; verify without originals.**
+
+A local-first **image attribution and verification toolkit** for artists and digital creators — visible deterrents plus verifiable signals that raise the cost of unauthorized reuse and AI washout.
 
 This repository provides the **standalone open-source self-host edition** of Jingwei. All processing runs entirely on your local machine — images are never uploaded to any remote server, and temporary files are discarded immediately after processing.
 
-*(For cloud features, creator community, and managed tools, visit [jwprotect.com](https://jwprotect.com)).*
+*(For cloud features, creator community, and managed tools, visit [jwprotect.com](https://jwprotect.com)). Features here may differ from the hosted site.*
 
-Jingwei combines multi-layered attribution (invisible cryptographic/frequency declarations verifiable on the Verify suite) with visible deterrent layers (such as displacement and texture locks) that significantly raise the computational and manual cost of AI watermark-removal, inpainting, and unauthorized reuse.
+Jingwei combines multi-layered attribution (invisible frequency-domain and spatial attribution signals, readable on the Verify suite) with visible deterrent layers (such as displacement and texture locks) that significantly raise the computational and manual cost of AI watermark-removal, inpainting, and unauthorized reuse.
 
 ## What you get
 
 | Feature | Route | Description |
 |---|---|---|
 | **Protect Engine** | [`/protect`](http://127.0.0.1:8080/protect) | Upload artwork, pick a protection mode, fine-tune placement boxes and eraser/brush masks, and download protected copies (PNG / JPEG). No registration required. |
-| **Holo-Card Export** | [`/protect`](http://127.0.0.1:8080/protect) | Interactive 3D foil/glare tilting card preview on protected results, with one-click rendering export to animated `.mp4` video clips. |
+| **Holo-Card Export** | [`/protect`](http://127.0.0.1:8080/protect) | Showcase foil/glare tilting card preview on protected results, with one-click rendering export to animated `.mp4` video clips. |
 | **Verify Suite** | [`/verify`](http://127.0.0.1:8080/verify) | Upload protected files to inspect and decode JW declarations, DWT frequency payloads, LSB steganography, tracking anchors, and EXIF/IPTC metadata. |
 | **Layer Matrix** | [`/guide/watermark-matrix`](http://127.0.0.1:8080/guide/watermark-matrix) | Interactive side-by-side slider comparing 9 visible layer recipes before and after real AI removal attempts. |
 
@@ -43,7 +45,7 @@ The initial build pulls base images and compiles the frontend. Once ready, open 
 2. Enter the **creator name** you want embedded in the claims (required when JW declaration is enabled).
 3. Select a **base mode** (detailed below). Click **Generate preview** on the right. You can drag placement boxes, or use the eraser/brush to spare key focal areas such as faces or logos.
 4. Click **Start protection** and download your protected PNG (lossless, required for LSB verification) or JPEG.
-5. *(Optional)* Scroll down to the **Holo-Card preview** to interact with the 3D glare effect, then click **Download Holo-Card clip (.mp4)** to export an animated showcase video.
+5. *(Optional)* Scroll down to the **Holo-Card preview** to interact with the foil/glare card, then click **Download Holo-Card clip (.mp4)** to export an animated showcase video.
 
 ### Base modes
 
@@ -111,7 +113,7 @@ Host pixels under the repeated text grid are shifted while preserving original c
 
 #### Displacement · scattered characters
 
-Characters are distributed randomly across high-variance regions, preventing local inpainting models from finding consistent edge alignments.
+Characters are distributed randomly across high-variance regions, disrupting local inpainting models and raising the cost of finding consistent edge alignments.
 
 | After Jingwei protection | After AI repair attempt |
 |:---:|:---:|
@@ -178,8 +180,10 @@ High-frequency dot patterns embedded in background gradients. AI smoothing opera
 ## How to verify
 
 1. Open http://127.0.0.1:8080/verify and upload the protected file (use original PNG for LSB checks).
-2. The verification engine automatically analyzes the file for C2PA manifests, JW declarations, tracking anchors, DWT payloads, LSB content, and EXIF/IPTC metadata.
+2. The verification engine automatically analyzes the file for C2PA manifests (when present), JW declarations, tracking anchors, DWT payloads, LSB content, and EXIF/IPTC metadata. The Verify page only **reads** existing, supported C2PA information; Jingwei's protect flow does **not** issue, write, or generate C2PA manifests.
 3. For tracking anchors on cropped or screenshot images, enter the **exact creator signature** used during protection.
+
+Detection results do not constitute legal proof of ownership, authenticity, or AI provenance.
 
 ## Support Jingwei
 
