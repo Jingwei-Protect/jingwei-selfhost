@@ -39,20 +39,11 @@ import {
   CREDIT_DISP_SHIFT,
   creditUsesAscii as creditMarkUsesAscii,
   nextCreditVisibleLayers,
-  creditDispPinFromHint,
+  creditVisibleName,
+  stripCreditDispPlacements,
   type CreditVisibleMark,
 } from '../lib/creditVisibleLayers'
 import { PROTECT_PAGE_CANONICAL, SITE_NAME } from '../lib/site'
-
-function isPlaceholderCreditName(text: string): boolean {
-  return text.trim().toLowerCase() === 'jingwei'
-}
-
-function creditVisibleName(sign: string, author: string): string {
-  const trimmedSign = sign.trim()
-  if (trimmedSign) return trimmedSign
-  return author.trim()
-}
 
 function MaybeAccordion({
   wrap,
@@ -604,8 +595,7 @@ function ProtectPageInner() {
   const creditRecipeKeyRef = useRef('')
   useEffect(() => {
     if (!isCredit || !file || !jwWriteHint) return
-    const visible = creditVisibleName(dispText, artist)
-    const key = `${file.name}:${file.size}:${file.lastModified}:${jwWriteHint.kind}:${creditMark}:${visible}`
+    const key = `${file.name}:${file.size}:${file.lastModified}:${jwWriteHint.kind}:${creditMark}`
     if (creditRecipeKeyRef.current === key) return
     creditRecipeKeyRef.current = key
     const layers = nextCreditVisibleLayers(creditMark, jwWriteHint.kind)
@@ -614,10 +604,6 @@ function ProtectPageInner() {
       setHalftoneStyle('ascii_chars')
       setHalftoneVisibility(8)
       setHalftoneSignature(0)
-      setHalftoneText(prev => {
-        if (visible) return visible
-        return isPlaceholderCreditName(prev) ? '' : prev
-      })
       setDispEnabled(false)
     } else {
       setHalftoneEnabled(false)
@@ -627,37 +613,24 @@ function ProtectPageInner() {
       setDispShift(layers.dispShift)
       setDispShadow(layers.dispShadow)
       setDispShadowStrength(layers.dispShadowStrength)
-      setDispText(prev => {
-        if (visible) return visible
-        return isPlaceholderCreditName(prev) ? '' : prev
-      })
     }
-  }, [isCredit, file, jwWriteHint, artist, dispText, creditMark])
+  }, [isCredit, file, jwWriteHint, creditMark])
 
   const creditUsesAscii = isCredit && creditMarkUsesAscii(creditMark, jwWriteHint?.kind)
   const creditUsesDisp = isCredit && !creditUsesAscii && (
     creditMark === 'displacement' || (creditMark === 'auto' && jwWriteHint?.kind !== 'flat')
   )
+  const creditStampText = creditVisibleName(dispText, artist)
 
   useEffect(() => {
     if (!creditUsesDisp) return
-    const visible = creditVisibleName(dispText, artist)
-    if (visible) {
-      setDispEnabled(true)
-      setHalftoneEnabled(false)
-      setDispFontRatio(CREDIT_DISP_FONT_RATIO)
-      setDispShift(CREDIT_DISP_SHIFT)
-      setDispShadow(true)
-      setDispShadowStrength(CREDIT_DISP_SHADOW_STRENGTH)
-      if (visible !== dispText.trim()) setDispText(visible)
-    }
-  }, [creditUsesDisp, dispText, artist])
-
-  useEffect(() => {
-    if (!creditUsesAscii) return
-    const visible = creditVisibleName(dispText, artist)
-    if (visible) setHalftoneText(visible)
-  }, [creditUsesAscii, dispText, artist])
+    setDispEnabled(true)
+    setHalftoneEnabled(false)
+    setDispFontRatio(CREDIT_DISP_FONT_RATIO)
+    setDispShift(CREDIT_DISP_SHIFT)
+    setDispShadow(true)
+    setDispShadowStrength(CREDIT_DISP_SHADOW_STRENGTH)
+  }, [creditUsesDisp])
 
   const onLogoFileChange = (next: File | null) => {
     setLogoFile(next)
@@ -779,13 +752,13 @@ function ProtectPageInner() {
 
   const hasVisibleLayers = useMemo(
     () =>
-      (dispEnabled && Boolean(dispText.trim()))
+      (dispEnabled && Boolean(isCredit ? creditStampText : dispText.trim()))
       || halftoneOn
       || blurEnabled
       || embossEnabled
       || (feEnabled && Boolean(feText.trim()))
       || Boolean(signatureText.trim()),
-    [dispEnabled, dispText, halftoneOn, blurEnabled, embossEnabled, feEnabled, feText, signatureText],
+    [dispEnabled, dispText, creditStampText, isCredit, halftoneOn, blurEnabled, embossEnabled, feEnabled, feText, signatureText],
   )
 
   const trackArtist = useMemo(() => {
@@ -810,20 +783,20 @@ function ProtectPageInner() {
   // of the placement step. (集中整词 / 模糊整条 / 脸部浮雕.)
   const hasPendingBoxFlow = useMemo(
     () =>
-      (dispEnabled && Boolean(dispText.trim()) && dispMode === 'band')
+      (!isCredit && dispEnabled && Boolean(dispText.trim()) && dispMode === 'band')
       || (blurEnabled && blurRegionMode === 'bar')
       || (feEnabled && Boolean(feText.trim()))
       || halftonePlacementEnabled,
-    [dispEnabled, dispText, dispMode, blurEnabled, blurRegionMode, feEnabled, feText, halftonePlacementEnabled],
+    [dispEnabled, dispText, dispMode, blurEnabled, blurRegionMode, feEnabled, feText, halftonePlacementEnabled, isCredit],
   )
 
   const handleProcess = useCallback(async (overrides?: ProcessOverrides) => {
     if (!file || !accepted) return
-    if (dispEnabled && !dispText.trim()) {
+    if (dispEnabled && !(isCredit ? creditStampText : dispText.trim())) {
       setError(t.errors.visibleTextRequired)
       return
     }
-    if (halftoneEnabled && !halftoneText.trim()) {
+    if (halftoneEnabled && !(isCredit ? creditStampText : halftoneText.trim())) {
       setError(t.errors.halftoneTextRequired)
       return
     }
@@ -884,8 +857,8 @@ function ProtectPageInner() {
     fd.append('embed_metadata', String(embedMeta))
     fd.append('delivery_text', deliveryText)
     fd.append('output_format', outputFormat)
-    fd.append('displacement_enabled', String(dispEnabled && Boolean(dispText.trim())))
-    fd.append('displacement_text', dispText)
+    fd.append('displacement_enabled', String(dispEnabled && Boolean(isCredit ? creditStampText : dispText.trim())))
+    fd.append('displacement_text', isCredit ? creditStampText : dispText)
     fd.append('displacement_mode', dispMode)
     fd.append('displacement_font_ratio', String(dispFontRatio))
     fd.append('displacement_shift', String(dispShift))
@@ -914,7 +887,7 @@ function ProtectPageInner() {
     fd.append('blur_bar_text', blurText)
     appendHalftoneFields(fd, {
       enabled: halftoneEnabled,
-      text: halftoneText,
+      text: isCredit ? creditStampText : halftoneText,
       style: halftoneStyle,
       size: halftoneSize,
       density: halftoneDensity,
@@ -948,14 +921,14 @@ function ProtectPageInner() {
       fd.append('visible_edits_requested', 'true')
       const eraseFile = blobToUploadFile(overrides.visibleEraseMask, 'visible-erase.png')
       if (eraseFile) fd.append('visible_erase_mask', eraseFile)
-      fd.append('visible_add_points', JSON.stringify(overrides.visibleAddPlacements ?? []))
+      fd.append('visible_add_points', JSON.stringify(stripCreditDispPlacements(isCredit, overrides.visibleAddPlacements ?? [])))
       const blurFile = blobToUploadFile(overrides.visibleAddBlurMask, 'visible-add-blur.png')
       if (blurFile) fd.append('visible_add_blur_mask', blurFile)
     } else if (overrides?.forceCommittedVisibleEdits) {
       fd.append('visible_edits_requested', 'true')
       const eraseFile = blobToUploadFile(overrides.visibleEraseMask, 'visible-erase.png')
       if (eraseFile) fd.append('visible_erase_mask', eraseFile)
-      fd.append('visible_add_points', JSON.stringify(overrides.visibleAddPlacements ?? []))
+      fd.append('visible_add_points', JSON.stringify(stripCreditDispPlacements(isCredit, overrides.visibleAddPlacements ?? [])))
       const blurFile = blobToUploadFile(overrides.visibleAddBlurMask, 'visible-add-blur.png')
       if (blurFile) fd.append('visible_add_blur_mask', blurFile)
     } else {
@@ -963,9 +936,9 @@ function ProtectPageInner() {
       const eraseFile = blobToUploadFile(eraseBlob, 'visible-erase.png')
       if (eraseFile) fd.append('visible_erase_mask', eraseFile)
       if (overrides?.visibleAddPlacements?.length) {
-        fd.append('visible_add_points', JSON.stringify(overrides.visibleAddPlacements))
+        fd.append('visible_add_points', JSON.stringify(stripCreditDispPlacements(isCredit, overrides.visibleAddPlacements)))
       } else if (pendingVisibleEdits?.placements.length) {
-        fd.append('visible_add_points', JSON.stringify(pendingVisibleEdits.placements))
+        fd.append('visible_add_points', JSON.stringify(stripCreditDispPlacements(isCredit, pendingVisibleEdits.placements)))
       }
       const blurBlob = overrides?.visibleAddBlurMask ?? pendingVisibleEdits?.blurMask ?? null
       const blurFile = blobToUploadFile(blurBlob, 'visible-add-blur.png')
@@ -1068,7 +1041,7 @@ function ProtectPageInner() {
       embossStrength, embossText, embossTextDensity, blurEnabled, blurY, blurCount,
       blurSigma, blurText, blurRegionMode, jwEnabled, trackEnabled, trackArtist, jwCreation, jwRestrictions, jwVisibleMode, pendingVisibleEdits,
       logoEnabled, logoFile, logoTint, logoPosition, logoOpacityPct, logoSizePct,
-      creditMark, isCredit,
+      creditMark, isCredit, creditStampText,
       uploadCopy, apiErr, locale, t.errors, ensurePreparedUpload,
       invalidatePreviewRequest, clearLivePreviewDisplay])
 
@@ -1076,13 +1049,13 @@ function ProtectPageInner() {
     // Adding a displacement stamp on the right always renders as "band" (multi
     // strip) on the server, so only offer it when the left mode is band too —
     // in scatter mode it would be misleading, hence no placeholder box there.
-    { id: 'displacement', label: t.labels.displacement, enabled: dispEnabled && Boolean(dispText.trim()) && dispMode === 'band' },
+    { id: 'displacement', label: t.labels.displacement, enabled: !isCredit && dispEnabled && Boolean(dispText.trim()) && dispMode === 'band' },
     { id: 'blur_bar', label: t.labels.blurBar, enabled: blurEnabled && blurRegionMode === 'bar' },
     { id: 'emboss', label: t.labels.emboss, enabled: embossEnabled },
     { id: 'face_emboss', label: t.labels.faceEmboss, enabled: feEnabled && Boolean(feText.trim()) },
     { id: 'halftone_signature', label: m.components.visibleLayerEditor.halftoneSignature, enabled: halftonePlacementEnabled },
     { id: 'logo', label: m.components.visibleLayerEditor.logoMark, enabled: logoOn },
-  ], [dispEnabled, dispText, dispMode, blurEnabled, blurRegionMode, embossEnabled, feEnabled, feText, halftonePlacementEnabled, logoOn, m.components.visibleLayerEditor.halftoneSignature, m.components.visibleLayerEditor.logoMark, t.labels])
+  ], [dispEnabled, dispText, dispMode, isCredit, blurEnabled, blurRegionMode, embossEnabled, feEnabled, feText, halftonePlacementEnabled, logoOn, m.components.visibleLayerEditor.halftoneSignature, m.components.visibleLayerEditor.logoMark, t.labels])
 
   const appendVisiblePreviewFields = useCallback((
     fd: FormData,
@@ -1095,8 +1068,8 @@ function ProtectPageInner() {
     fd.append('visible_mark', isCredit ? creditMark : 'auto')
     fd.append('signature_text', signatureText)
     fd.append('signature_position', signaturePos)
-    fd.append('displacement_enabled', String(dispEnabled && Boolean(dispText.trim())))
-    fd.append('displacement_text', dispText)
+    fd.append('displacement_enabled', String(dispEnabled && Boolean(isCredit ? creditStampText : dispText.trim())))
+    fd.append('displacement_text', isCredit ? creditStampText : dispText)
     fd.append('displacement_mode', dispMode)
     fd.append('displacement_font_ratio', String(dispFontRatio))
     fd.append('displacement_shift', String(dispShift))
@@ -1136,7 +1109,7 @@ function ProtectPageInner() {
     fd.append('auto_timestamp', String(autoTimestamp))
     appendHalftoneFields(fd, {
       enabled: halftoneEnabled,
-      text: halftoneText,
+      text: isCredit ? creditStampText : halftoneText,
       style: halftoneStyle,
       size: halftoneSize,
       density: halftoneDensity,
@@ -1171,7 +1144,7 @@ function ProtectPageInner() {
     halftoneEnabled, halftoneText, halftoneStyle, halftoneOn, halftoneSize, halftoneDensity,
     halftoneVisibility, halftoneSignature, halftoneSignatureSize, halftoneDotTexture,
     logoEnabled, logoFile, logoTint, logoPosition, logoOpacityPct, logoSizePct,
-    creditMark, isCredit,
+    creditMark, isCredit, creditStampText,
   ])
 
   const appendVisibleEditFields = useCallback((
@@ -1184,10 +1157,10 @@ function ProtectPageInner() {
     }
     const eraseFile = blobToUploadFile(edits.eraseMask, 'visible-erase.png')
     if (eraseFile) fd.append('visible_erase_mask', eraseFile)
-    fd.append('visible_add_points', JSON.stringify(edits.placements ?? []))
+    fd.append('visible_add_points', JSON.stringify(stripCreditDispPlacements(isCredit, edits.placements ?? [])))
     const blurFile = blobToUploadFile(edits.blurMask, 'visible-add-blur.png')
     if (blurFile) fd.append('visible_add_blur_mask', blurFile)
-  }, [])
+  }, [isCredit])
 
   const fetchLivePreview = useCallback(async (editOverride?: PendingVisibleEdits | null, dispSeedOverride?: number) => {
     if (!file || !needsLivePreview) return
@@ -1557,7 +1530,6 @@ function ProtectPageInner() {
   // Boxes become the single source of truth; the server skips that layer's
   // automatic render (see protect.py), so there is never a duplicate.
   const dispSeededRef = useRef(false)
-  const lastAutoCreditPinRef = useRef<{ x: number; y: number } | null>(null)
   const blurSeededRef = useRef(false)
   const feSeededRef = useRef(false)
   const htSeededRef = useRef(false)
@@ -1605,26 +1577,15 @@ function ProtectPageInner() {
     logoSizePct,
   })
   useEffect(() => {
-    const dispOn = dispEnabled && Boolean(dispText.trim()) && dispMode === 'band'
+    const dispOn = !isCredit && dispEnabled && Boolean(dispText.trim()) && dispMode === 'band'
     const blurOn = blurEnabled && blurRegionMode === 'bar'
     const feOn = feEnabled && Boolean(feText.trim())
     const htOn = halftonePlacementEnabled
     const embossOn = embossEnabled
     // One placement = one word. Seed a single centered box; the user adds more
-    // by clicking if they want extras.
-    const makeDispBoxes = (): VisibleAddPlacement[] => {
-      if (isCredit) {
-        const pin = creditDispPinFromHint(jwWriteHint)
-        lastAutoCreditPinRef.current = { x: pin.x, y: pin.y }
-        return [{
-          layer: 'displacement',
-          x: pin.x,
-          y: pin.y,
-          ...(pin.w && pin.h ? { w: pin.w, h: pin.h } : {}),
-        }]
-      }
-      return [{ layer: 'displacement', x: 0.5, y: 0.5 }]
-    }
+    // by clicking if they want extras. 署名·快速 displacement is auto-placed.
+    const makeDispBoxes = (): VisibleAddPlacement[] =>
+      [{ layer: 'displacement', x: 0.5, y: 0.5 }]
     // One placement = one patch. Seed a single box; the user drags it onto the
     // face (or adds more by clicking). Avoid auto-spreading onto the face.
     const makeFeBoxes = (): VisibleAddPlacement[] =>
@@ -1658,23 +1619,9 @@ function ProtectPageInner() {
     if (dispOn && !dispSeededRef.current) {
       placements = [...placements.filter(p => p.layer !== 'displacement'), ...makeDispBoxes()]
       changed = true
-    } else if (!dispOn && dispSeededRef.current) {
+    } else if (!dispOn && (dispSeededRef.current || (isCredit && placements.some(p => p.layer === 'displacement')))) {
       placements = placements.filter(p => p.layer !== 'displacement')
-      lastAutoCreditPinRef.current = null
       changed = true
-    } else if (dispOn && isCredit && dispSeededRef.current && jwWriteHint) {
-      const pin = creditDispPinFromHint(jwWriteHint)
-      const auto = lastAutoCreditPinRef.current
-      const cur = placements.find(p => p.layer === 'displacement')
-      const stillAuto = Boolean(
-        cur && auto
-        && Math.abs(cur.x - auto.x) < 0.02
-        && Math.abs(cur.y - auto.y) < 0.02,
-      )
-      if (stillAuto && cur && (Math.abs(cur.x - pin.x) > 0.01 || Math.abs(cur.y - pin.y) > 0.01)) {
-        placements = [...placements.filter(p => p.layer !== 'displacement'), ...makeDispBoxes()]
-        changed = true
-      }
     }
     if (blurOn && !blurSeededRef.current) {
       placements = [...placements.filter(p => p.layer !== 'blur_bar'), ...makeBlurBoxes(blurCount)]
@@ -1750,7 +1697,7 @@ function ProtectPageInner() {
   }, [
     dispEnabled, dispText, dispMode, blurEnabled, blurRegionMode, blurCount,
     feEnabled, feText, halftonePlacementEnabled, asciiPosition, embossEnabled, logoOn, logoPosition,
-    isCredit, jwWriteHint,
+    isCredit,
     resetPreviewStage, livePreviewImg, resultImg,
     fetchLivePreview, clearResultDisplay,
   ])
@@ -2031,7 +1978,7 @@ function ProtectPageInner() {
                     onChange={e => setDispText(e.target.value)}
                   />
                   <span className="form-hint" style={{ display: 'block', marginTop: 6 }}>
-                    {f.quickSignPlaceHint}
+                    {creditUsesDisp ? f.creditDispLockedHint : f.quickSignPlaceHint}
                   </span>
                 </div>
                 {creditUsesAscii && (
@@ -2790,13 +2737,13 @@ function ProtectPageInner() {
               className="btn btn-primary btn-lg"
               style={{ width: '100%', marginTop: 'var(--space-4)' }}
               onClick={() => handleStartProtectClick()}
-              disabled={!file || processing || !accepted || (jwEnabled && !artist.trim()) || (dispEnabled && !dispText.trim()) || (halftoneEnabled && !halftoneText.trim()) || (logoEnabled && !logoFile)}
+              disabled={!file || processing || !accepted || (jwEnabled && !artist.trim()) || (dispEnabled && !(isCredit ? creditStampText : dispText.trim())) || (halftoneEnabled && !(isCredit ? creditStampText : halftoneText.trim())) || (logoEnabled && !logoFile)}
             >
               {processing
                 ? <><span className="spinner" /> {t.actions.processing}</>
                 : !accepted
                   ? t.actions.agreeTerms
-                  : (dispEnabled && !dispText.trim())
+                  : (dispEnabled && !(isCredit ? creditStampText : dispText.trim()))
                     ? t.actions.fillDispText
                     : (halftoneEnabled && !halftoneText.trim())
                       ? t.actions.fillHalftoneText

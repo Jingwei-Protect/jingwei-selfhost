@@ -255,6 +255,7 @@ export const protect = {
     quickArtist: '创作者姓名',
     quickSignText: '画面署名文字（可选）',
     quickSignPlaceHint: '浅字符可点下方快捷位置；已出预览时先点「返回摆放」，再拖虚线框。',
+    creditDispLockedHint: '位移字由系统打在纹理上，不能拖动。画面署名可改，与创作者姓名分开。',
     quickLogo: 'Logo（可选）',
     quickLogoHint: '可选。与浅字符或位移字同时打一个角落浅印。透明底或浅色底均可。',
     flatCreditHint: '画面较为平坦，已改用满幅浅色字符。署名位置与位移 Logo 仍可使用；平坦画面上的可见印记仍可能被重绘去除。',

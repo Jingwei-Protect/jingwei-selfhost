@@ -56,6 +56,22 @@ export function nextCreditVisibleLayers(
   }
 }
 
+/** On-image credit text. Empty 画面署名 falls back to 创作者姓名 at send time. */
+export function creditVisibleName(sign: string, author: string): string {
+  const trimmedSign = sign.trim()
+  if (trimmedSign) return trimmedSign
+  return author.trim()
+}
+
+/** 署名·快速 displacement is auto-placed; leftover dashed boxes must not drag it. */
+export function stripCreditDispPlacements<T extends { layer: string }>(
+  isCredit: boolean,
+  placements: T[],
+): T[] {
+  if (!isCredit) return placements
+  return placements.filter(p => p.layer !== 'displacement')
+}
+
 export type CreditDispPin = {
   x: number
   y: number

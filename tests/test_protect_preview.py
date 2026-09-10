@@ -99,6 +99,22 @@ def test_apply_visible_edits_to_frame_no_edits_passthrough() -> None:
     assert np.array_equal(out, img)
 
 
+def test_credit_stamp_applies_without_dashed_box() -> None:
+    """署名·快速 displacement has no drag pin; preview still stamps at best_host."""
+    img = _img(3)
+    out = _apply_visible_edits_to_frame(
+        img,
+        img.copy(),
+        **_edit_kwargs(
+            add_placements=[],
+            credit_stamp=True,
+            displacement_enabled=True,
+            displacement_text="JW",
+        ),
+    )
+    assert not np.array_equal(out, img)
+
+
 def test_apply_visible_edits_to_frame_add_displacement() -> None:
     img = _img(3)
     out = _apply_visible_edits_to_frame(

@@ -583,6 +583,25 @@ def _visible_edit_layer_opts(
     return disp_opts, blur_opts, emboss_opts, face_emboss_opts
 
 
+def _maybe_auto_credit_stamp(
+    frame: np.ndarray,
+    *,
+    credit_stamp: bool,
+    displacement_enabled: bool,
+    displacement_text: str,
+    seed: int = 42,
+) -> np.ndarray:
+    """Credit Quick displacement: one best_host stamp, no drag pin."""
+    if not credit_stamp or not displacement_enabled:
+        return frame
+    name = (displacement_text or "").strip()
+    if not name:
+        return frame
+    from core.credit_displacement import apply_credit_displacement
+
+    return apply_credit_displacement(frame, name, seed=seed)
+
+
 def _apply_visible_edits_to_frame(
     image_array: np.ndarray,
     full_frame: np.ndarray,
@@ -614,54 +633,68 @@ def _apply_visible_edits_to_frame(
 ) -> np.ndarray:
     from core.visible_edit import apply_visible_edits
 
-    if _visible_edits_empty(erase_mask_arr, add_placements, add_blur_arr):
-        return full_frame
+    work_placements = list(add_placements)
+    if credit_stamp:
+        work_placements = [
+            p for p in work_placements
+            if p.get("layer", "displacement") != "displacement"
+        ]
 
-    edit_placements = _placements_for_visible_edits(add_placements)
-    disp_opts, blur_opts, emboss_opts, face_emboss_opts = _visible_edit_layer_opts(
-        add_placements=add_placements,
+    frame = full_frame
+    if not _visible_edits_empty(erase_mask_arr, work_placements, add_blur_arr):
+        edit_placements = _placements_for_visible_edits(work_placements)
+        disp_opts, blur_opts, emboss_opts, face_emboss_opts = _visible_edit_layer_opts(
+            add_placements=work_placements,
+            displacement_enabled=displacement_enabled,
+            displacement_text=displacement_text,
+            displacement_shift=displacement_shift,
+            displacement_font_ratio=displacement_font_ratio,
+            displacement_seed=displacement_seed,
+            displacement_shadow=displacement_shadow,
+            displacement_shadow_strength=displacement_shadow_strength,
+            credit_stamp=False,
+            blur_bar_enabled=blur_bar_enabled,
+            blur_bar_text=blur_bar_text,
+            blur_bar_sigma=blur_bar_sigma,
+            emboss_enabled=emboss_enabled,
+            emboss_pattern=emboss_pattern,
+            emboss_strength=emboss_strength,
+            emboss_text=emboss_text,
+            emboss_text_density=emboss_text_density,
+            face_emboss_enabled=face_emboss_enabled,
+            face_emboss_text=face_emboss_text,
+            face_emboss_shift=face_emboss_shift,
+            face_emboss_opacity=face_emboss_opacity,
+            face_emboss_seed=face_emboss_seed,
+        )
+        if add_blur_arr is not None and blur_bar_enabled and blur_opts is None:
+            blur_opts = {
+                "text": blur_bar_text,
+                "sigma": blur_bar_sigma,
+                "seed": 42,
+                "width_ratio": 0.28,
+                "height_ratio": 0.07,
+            }
+
+        frame = apply_visible_edits(
+            image_array,
+            full_frame,
+            image_array,
+            erase_mask=erase_mask_arr,
+            add_placements=edit_placements or None,
+            add_blur_mask=add_blur_arr,
+            displacement=disp_opts,
+            blur_opts=blur_opts,
+            emboss_opts=emboss_opts,
+            face_emboss_opts=face_emboss_opts,
+        )
+
+    return _maybe_auto_credit_stamp(
+        frame,
+        credit_stamp=credit_stamp,
         displacement_enabled=displacement_enabled,
         displacement_text=displacement_text,
-        displacement_shift=displacement_shift,
-        displacement_font_ratio=displacement_font_ratio,
-        displacement_seed=displacement_seed,
-        displacement_shadow=displacement_shadow,
-        displacement_shadow_strength=displacement_shadow_strength,
-        credit_stamp=credit_stamp,
-        blur_bar_enabled=blur_bar_enabled,
-        blur_bar_text=blur_bar_text,
-        blur_bar_sigma=blur_bar_sigma,
-        emboss_enabled=emboss_enabled,
-        emboss_pattern=emboss_pattern,
-        emboss_strength=emboss_strength,
-        emboss_text=emboss_text,
-        emboss_text_density=emboss_text_density,
-        face_emboss_enabled=face_emboss_enabled,
-        face_emboss_text=face_emboss_text,
-        face_emboss_shift=face_emboss_shift,
-        face_emboss_opacity=face_emboss_opacity,
-        face_emboss_seed=face_emboss_seed,
-    )
-    if add_blur_arr is not None and blur_bar_enabled and blur_opts is None:
-        blur_opts = {
-            "text": blur_bar_text,
-            "sigma": blur_bar_sigma,
-            "seed": 42,
-            "width_ratio": 0.28,
-            "height_ratio": 0.07,
-        }
-
-    return apply_visible_edits(
-        image_array,
-        full_frame,
-        image_array,
-        erase_mask=erase_mask_arr,
-        add_placements=edit_placements or None,
-        add_blur_mask=add_blur_arr,
-        displacement=disp_opts,
-        blur_opts=blur_opts,
-        emboss_opts=emboss_opts,
-        face_emboss_opts=face_emboss_opts,
+        seed=displacement_seed,
     )
 
 
@@ -1317,6 +1350,12 @@ async def protect(
     if has_visible_edit:
         try:
 
+            if mode == "credit":
+                add_placements = [
+                    p for p in add_placements
+                    if p.get("layer", "displacement") != "displacement"
+                ]
+
             disp_opts = None
             if any(p.get("layer", "displacement") == "displacement" for p in add_placements):
                 if _bool(displacement_enabled) and displacement_text.strip():
@@ -1327,7 +1366,6 @@ async def protect(
                         "seed": displacement_seed,
                         "shadow": _bool(displacement_shadow),
                         "shadow_strength": displacement_shadow_strength,
-                        "credit": mode == "credit",
                     }
 
             blur_opts = None
@@ -1396,14 +1434,15 @@ async def protect(
             return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
         except Exception as exc:
             status_msgs.append(f"可见层编辑失败：{exc}")
-    elif (
-        mode == "credit"
-        and _bool(displacement_enabled)
-        and displacement_text.strip()
-    ):
-        from core.credit_displacement import apply_credit_displacement
 
-        protected = apply_credit_displacement(protected, displacement_text.strip())
+    protected = _maybe_auto_credit_stamp(
+        protected,
+        credit_stamp=mode == "credit",
+        displacement_enabled=_bool(displacement_enabled),
+        displacement_text=displacement_text,
+        seed=displacement_seed,
+    )
+    if mode == "credit" and _bool(displacement_enabled) and displacement_text.strip():
         metrics = evaluate_protection(image_array, protected[: image_array.shape[0], : image_array.shape[1]])
         quality_label, quality_text = quality_assessment(metrics["psnr"])
 

@@ -202,40 +202,42 @@ def apply_visible_edits(
     else:
         body = body_full.copy()
 
+    credit_lock = bool((displacement or {}).get("credit"))
+    if credit_lock and displacement and displacement.get("text", "").strip():
+        from core.credit_displacement import apply_credit_displacement
+
+        # 署名·快速: one best_host stamp. Dashed-box coordinates are ignored.
+        body = apply_credit_displacement(
+            body,
+            displacement["text"].strip(),
+            seed=int(displacement.get("seed", 42)),
+        )
+
     if add_placements:
         seed_base = int((displacement or {}).get("seed", 42))
         for i, placement in enumerate(add_placements):
             layer = placement.get("layer", "displacement")
             cx, cy = float(placement["x"]), float(placement["y"])
             if layer == "displacement" and displacement and displacement.get("text", "").strip():
-                if displacement.get("credit"):
-                    from core.credit_displacement import apply_credit_displacement
+                if credit_lock:
+                    continue
+                from core.displacement_watermark import apply_displacement_single_at
 
-                    body = apply_credit_displacement(
-                        body,
-                        displacement["text"].strip(),
-                        anchor_x=cx,
-                        anchor_y=cy,
-                        seed=seed_base + 1000 + i,
-                    )
-                else:
-                    from core.displacement_watermark import apply_displacement_single_at
-
-                    # One box = one word rendered exactly at the box center, so the
-                    # on-screen dashed box maps 1:1 to where the text lands. (The old
-                    # band path auto-picked 3 extra rows and ignored X, so the boxes
-                    # never matched the result.)
-                    body = apply_displacement_single_at(
-                        body,
-                        text=displacement["text"].strip(),
-                        shift_px=int(displacement.get("shift", 10)),
-                        font_size_ratio=float(displacement.get("font_ratio", 0.15)),
-                        seed=seed_base + 1000 + i,
-                        shadow_enabled=bool(displacement.get("shadow", True)),
-                        shadow_strength=float(displacement.get("shadow_strength", 0.35)),
-                        anchor_x=cx,
-                        anchor_y=cy,
-                    )
+                # One box = one word rendered exactly at the box center, so the
+                # on-screen dashed box maps 1:1 to where the text lands. (The old
+                # band path auto-picked 3 extra rows and ignored X, so the boxes
+                # never matched the result.)
+                body = apply_displacement_single_at(
+                    body,
+                    text=displacement["text"].strip(),
+                    shift_px=int(displacement.get("shift", 10)),
+                    font_size_ratio=float(displacement.get("font_ratio", 0.15)),
+                    seed=seed_base + 1000 + i,
+                    shadow_enabled=bool(displacement.get("shadow", True)),
+                    shadow_strength=float(displacement.get("shadow_strength", 0.35)),
+                    anchor_x=cx,
+                    anchor_y=cy,
+                )
             elif layer == "blur_bar" and blur_opts:
                 body = _apply_blur_placement(body, placement, blur_opts)
             elif layer == "emboss" and emboss_opts:

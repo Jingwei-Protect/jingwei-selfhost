@@ -110,6 +110,33 @@ def _changed_frac(original: np.ndarray, out: np.ndarray) -> float:
     return float((delta > 2).mean())
 
 
+def test_visible_edit_credit_ignores_drag_pin() -> None:
+    """Credit Quick locks the stamp at best_host even if a leftover box is sent."""
+    img = _yellow_padded_subject()
+    opts = {
+        "text": "Jingwei",
+        "shift": 3,
+        "font_ratio": 0.07,
+        "seed": 1,
+        "shadow": True,
+        "shadow_strength": 0.15,
+        "credit": True,
+    }
+    auto = apply_credit_displacement(img, "Jingwei", seed=1)
+    dragged = apply_visible_edits(
+        img, img.copy(), img.copy(),
+        add_placements=[{"layer": "displacement", "x": 0.2, "y": 0.2}],
+        displacement=opts,
+    )
+    other = apply_visible_edits(
+        img, img.copy(), img.copy(),
+        add_placements=[{"layer": "displacement", "x": 0.85, "y": 0.85}],
+        displacement=opts,
+    )
+    assert np.array_equal(dragged, auto)
+    assert np.array_equal(other, auto)
+
+
 def test_visible_edit_credit_flag_ignores_loud_sliders() -> None:
     img = _yellow_padded_subject()
     place = [{"layer": "displacement", "x": 0.5, "y": 0.82}]

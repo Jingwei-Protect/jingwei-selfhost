@@ -255,6 +255,7 @@ export const protect = {
     quickArtist: 'Creator name',
     quickSignText: 'On-image signature (optional)',
     quickSignPlaceHint: 'For faint characters, pick a corner below. After a preview, tap Back to placement, then drag the dashed box.',
+    creditDispLockedHint: 'Displacement is placed on texture automatically and cannot be dragged. On-image credit is separate from the creator name.',
     quickLogo: 'Logo (optional)',
     quickLogoHint: 'Optional. Adds a small faint corner stamp on top of the letter field or displacement name. Transparent or light backgrounds both work.',
     flatCreditHint: 'This image is largely flat, so a faint full-frame character grid is applied. Signature placement and the displacement logo remain available. Visible marks on flat art may still be removed by redrawing.',

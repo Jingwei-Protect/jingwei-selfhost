@@ -10,6 +10,8 @@ import {
   creditUsesAscii,
   nextCreditVisibleLayers,
   creditDispPinFromHint,
+  creditVisibleName,
+  stripCreditDispPlacements,
 } from './creditVisibleLayers.ts'
 
 assert.equal(creditUsesAscii('ascii', 'rich'), true)
@@ -58,5 +60,17 @@ assert.equal(hostPin.x, 0.48)
 assert.equal(hostPin.y, 0.71)
 assert.equal(hostPin.w, 0.22)
 assert.equal(hostPin.h, 0.08)
+
+assert.equal(creditVisibleName('JWprotect', '小明'), 'JWprotect')
+assert.equal(creditVisibleName('  ', '小明'), '小明')
+assert.equal(creditVisibleName('', ''), '')
+assert.equal(creditVisibleName('and', '小明'), 'and')
+
+const mixed = [
+  { layer: 'displacement', x: 0.2, y: 0.3 },
+  { layer: 'logo', x: 0.8, y: 0.8 },
+]
+assert.deepEqual(stripCreditDispPlacements(true, mixed), [{ layer: 'logo', x: 0.8, y: 0.8 }])
+assert.deepEqual(stripCreditDispPlacements(false, mixed), mixed)
 
 console.log('creditVisibleLayers.test.ts ok')
