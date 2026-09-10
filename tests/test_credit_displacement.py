@@ -1,4 +1,4 @@
-"""Credit displacement follows the c024 stamp: content-sized, host-calibrated, draggable."""
+"""Credit displacement follows the c024 stamp: content-sized, host-calibrated."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from core.credit_displacement import (
     credit_font_size,
     credit_stamp_hint,
     plan_credit_stamp,
+    subject_host_bbox,
 )
 from core.displacement_watermark import apply_displacement_single_at
 from core.host_texture import conspicuity, region_texture
@@ -51,6 +52,36 @@ def test_default_pin_lands_on_subject_not_canvas_center() -> None:
     layout = plan_credit_stamp(img, "Jingwei")
     assert layout.anchor_y > 0.55
     assert abs(layout.anchor_y - 0.5) > 0.08
+
+
+def _padded_floral_over_fur() -> np.ndarray:
+    """Yellow margin + busy flowers at canvas centre + smoother fur below.
+
+    Matches the live puppy upload: auto-search on the full frame prefers the
+    floral band; c024-style search is confined to the subject and should sit
+    on the body, not the flowers.
+    """
+    h, w = 600, 400
+    canvas = np.empty((h, w, 3), dtype=np.uint8)
+    canvas[:] = (255, 214, 32)
+    rng = np.random.default_rng(3)
+    flowers = np.empty((140, w, 3), dtype=np.uint8)
+    flowers[:, :] = (30, 190, 210)
+    flowers = np.clip(flowers.astype(np.int16) + rng.integers(-35, 35, flowers.shape), 0, 255).astype(np.uint8)
+    fur = np.empty((220, w, 3), dtype=np.uint8)
+    fur[:, :] = (196, 148, 78)
+    fur = np.clip(fur.astype(np.int16) + rng.integers(-12, 12, fur.shape), 0, 255).astype(np.uint8)
+    canvas[200:340] = flowers
+    canvas[340:560] = fur
+    return canvas
+
+
+def test_default_pin_sits_on_body_not_canvas_centre_flowers() -> None:
+    img = _padded_floral_over_fur()
+    layout = plan_credit_stamp(img, "Jingwei")
+    cy = layout.y + layout.mask_h / 2.0
+    assert cy > 340
+    assert layout.anchor_y > 0.55
 
 
 def test_dragged_pin_is_honored() -> None:

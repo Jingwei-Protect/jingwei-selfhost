@@ -15,6 +15,8 @@ by date until the first version tag is cut.
 - Credit Quick displacement is auto-placed on texture and cannot be dragged.
   On-image signature is independent of the creator name; empty signature
   falls back to the name only when sending.
+- Auto placement searches the largest interior colour mass (the body), not
+  the canvas centre, so surrounding flowers do not steal the stamp.
 
 ## 2026-09-06
 

@@ -1,14 +1,12 @@
-"""署名·快速 displacement stamp — one c024-style mark, draggable.
+"""署名·快速 displacement stamp — one c024-style mark, auto-placed.
 
 The experimental dog c024 rung is not a fixed 7% of the whole canvas plus a
 locked 0.1518 shadow. It is:
 
 - one word, once
 - font 7% of the *subject* short side (flat margins do not count)
-- default pin at ``best_host``
+- pin at ``best_host`` inside the subject (yellow/sky margins do not count)
 - shadow solved so conspicuity at the pin is ~0.24
-
-Dragging only moves the pin. Size and faintness are recomputed there.
 """
 
 from __future__ import annotations
@@ -89,6 +87,66 @@ def content_bbox(image: np.ndarray) -> tuple[int, int, int, int]:
     return x0, y0, x1, y1
 
 
+_KMEANS_MAX_SIDE = 160
+_KMEANS_K = 4
+
+
+def subject_host_bbox(image: np.ndarray) -> tuple[int, int, int, int]:
+    """Tight box of the largest interior colour mass (the body, not the bouquet).
+
+    ``content_bbox`` still includes surrounding flowers, so its centre is often
+    the bouquet. Cluster the subject colours and keep the biggest mass; that is
+    the puppy's coat on the live upload, which is where c024 sat.
+    """
+    x0, y0, x1, y1 = content_bbox(image)
+    crop = image[y0:y1, x0:x1, :3]
+    ch, cw = crop.shape[:2]
+    if ch < 32 or cw < 32:
+        return x0, y0, x1, y1
+    scale = min(1.0, _KMEANS_MAX_SIDE / float(max(ch, cw)))
+    if scale < 0.999:
+        sw, sh = max(16, int(round(cw * scale))), max(16, int(round(ch * scale)))
+        small = cv2.resize(crop, (sw, sh), interpolation=cv2.INTER_AREA)
+    else:
+        small = crop
+        sw, sh = cw, ch
+    pixels = np.ascontiguousarray(small.reshape(-1, 3).astype(np.float32))
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 12, 1.0)
+    _compact, labels, centers = cv2.kmeans(
+        pixels, _KMEANS_K, None, criteria, 4, cv2.KMEANS_PP_CENTERS,
+    )
+    labels = labels.reshape(sh, sw)
+    border = np.median(
+        np.concatenate(
+            [
+                image[0, :, :3],
+                image[-1, :, :3],
+                image[1:-1, 0, :3],
+                image[1:-1, -1, :3],
+            ],
+            axis=0,
+        ).astype(np.float32),
+        axis=0,
+    )
+    drop = int(np.argmin(np.linalg.norm(centers - border, axis=1)))
+    counts = [(i, int((labels == i).sum())) for i in range(_KMEANS_K) if i != drop]
+    if not counts:
+        return x0, y0, x1, y1
+    best = max(counts, key=lambda item: item[1])[0]
+    ys, xs = np.where(labels == best)
+    if xs.size < 24:
+        return x0, y0, x1, y1
+    inv = 1.0 / scale
+    pad = 4
+    sx0 = x0 + max(0, int(xs.min() * inv) - pad)
+    sy0 = y0 + max(0, int(ys.min() * inv) - pad)
+    sx1 = x0 + min(cw, int((xs.max() + 1) * inv) + pad)
+    sy1 = y0 + min(ch, int((ys.max() + 1) * inv) + pad)
+    if (sx1 - sx0) < 32 or (sy1 - sy0) < 32:
+        return x0, y0, x1, y1
+    return sx0, sy0, sx1, sy1
+
+
 def content_short_side(image: np.ndarray) -> int:
     """min(width, height) of ``content_bbox``."""
     x0, y0, x1, y1 = content_bbox(image)
@@ -130,7 +188,11 @@ def _place_mask(
     anchor_x: float | None,
     anchor_y: float | None,
 ) -> tuple[int, int]:
-    """Top-left of the mask: explicit pin, or ``best_host``."""
+    """Top-left of the mask: explicit pin, or ``best_host`` inside the subject.
+
+    Search is confined to the largest interior colour mass so a yellow margin
+    plus surrounding flowers cannot park the stamp on the bouquet.
+    """
     h, w = image.shape[:2]
     mh, mw = mask.shape
     if mh >= h or mw >= w:
@@ -142,6 +204,18 @@ def _place_mask(
         px = max(0, min(px, max(0, w - mw)))
         py = max(0, min(py, max(0, h - mh)))
         return px, py
+    x0, y0, x1, y1 = subject_host_bbox(image)
+    crop = image[y0:y1, x0:x1]
+    ch, cw = crop.shape[:2]
+    if mh < ch and mw < cw:
+        x, y, _host = best_host(crop, mh, mw)
+        return x0 + x, y0 + y
+    x0, y0, x1, y1 = content_bbox(image)
+    crop = image[y0:y1, x0:x1]
+    ch, cw = crop.shape[:2]
+    if mh < ch and mw < cw:
+        x, y, _host = best_host(crop, mh, mw)
+        return x0 + x, y0 + y
     x, y, _host = best_host(image, mh, mw)
     return x, y
 
