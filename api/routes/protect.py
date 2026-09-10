@@ -101,7 +101,11 @@ def _apply_credit_visible_recipe(
     visible_mark: str = "auto",
     logo_present: bool = False,
 ) -> tuple[bool, str, int, int, bool, str, float, int, bool, float, bool]:
-    """Apply 署名·快速 defaults; keep caller sliders when the layer is already on."""
+    """Apply 署名·快速 defaults.
+
+    Displacement on this path is always the dog c024 rung; leftover ASCII is
+    turned off. Caller sliders win only for stealth / non-credit modes.
+    """
     from core.credit_mode import resolve_credit_recipe
 
     recipe = resolve_credit_recipe(

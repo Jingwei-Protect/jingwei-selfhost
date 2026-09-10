@@ -33,6 +33,14 @@ import { usePageSeo } from '../hooks/usePageSeo'
 import { localeUsesLatinJwFields } from '../i18n/types'
 import { useLocale } from '../i18n/LocaleContext'
 import { getToken } from '../lib/auth'
+import {
+  CREDIT_DISP_FONT_RATIO,
+  CREDIT_DISP_SHADOW_STRENGTH,
+  CREDIT_DISP_SHIFT,
+  creditUsesAscii as creditMarkUsesAscii,
+  nextCreditVisibleLayers,
+  type CreditVisibleMark,
+} from '../lib/creditVisibleLayers'
 import { PROTECT_PAGE_CANONICAL, SITE_NAME } from '../lib/site'
 
 function isPlaceholderCreditName(text: string): boolean {
@@ -178,7 +186,6 @@ function appendHalftoneFields(
 
 type LogoTint = 'original' | 'gray' | 'white'
 type LogoPosition = 'bottom_right' | 'bottom_left' | 'top_right' | 'top_left' | 'center'
-type CreditVisibleMark = 'auto' | 'ascii' | 'displacement'
 
 function appendLogoFields(
   fd: FormData,
@@ -573,6 +580,10 @@ function ProtectPageInner() {
       setJwEnabled(true)
       setEmbedMeta(true)
       setDispMode('band')
+      setDispFontRatio(CREDIT_DISP_FONT_RATIO)
+      setDispShift(CREDIT_DISP_SHIFT)
+      setDispShadow(true)
+      setDispShadowStrength(CREDIT_DISP_SHADOW_STRENGTH)
     }
   }, [isCredit])
 
@@ -591,8 +602,8 @@ function ProtectPageInner() {
     const key = `${file.name}:${file.size}:${file.lastModified}:${jwWriteHint.kind}:${creditMark}:${visible}`
     if (creditRecipeKeyRef.current === key) return
     creditRecipeKeyRef.current = key
-    const useAscii = creditMark === 'ascii' || (creditMark === 'auto' && jwWriteHint.kind === 'flat')
-    if (useAscii) {
+    const layers = nextCreditVisibleLayers(creditMark, jwWriteHint.kind)
+    if (layers.asciiEnabled) {
       setHalftoneEnabled(true)
       setHalftoneStyle('ascii_chars')
       setHalftoneVisibility(8)
@@ -603,12 +614,13 @@ function ProtectPageInner() {
       })
       setDispEnabled(false)
     } else {
+      setHalftoneEnabled(false)
       setDispEnabled(true)
       setDispMode('band')
-      setDispFontRatio(0.07)
-      setDispShift(3)
-      setDispShadow(true)
-      setDispShadowStrength(0.1518)
+      setDispFontRatio(layers.dispFontRatio)
+      setDispShift(layers.dispShift)
+      setDispShadow(layers.dispShadow)
+      setDispShadowStrength(layers.dispShadowStrength)
       setDispText(prev => {
         if (visible) return visible
         return isPlaceholderCreditName(prev) ? '' : prev
@@ -616,9 +628,7 @@ function ProtectPageInner() {
     }
   }, [isCredit, file, jwWriteHint, artist, dispText, creditMark])
 
-  const creditUsesAscii = isCredit && (
-    creditMark === 'ascii' || (creditMark === 'auto' && jwWriteHint?.kind === 'flat')
-  )
+  const creditUsesAscii = isCredit && creditMarkUsesAscii(creditMark, jwWriteHint?.kind)
   const creditUsesDisp = isCredit && !creditUsesAscii && (
     creditMark === 'displacement' || (creditMark === 'auto' && jwWriteHint?.kind !== 'flat')
   )
@@ -628,6 +638,11 @@ function ProtectPageInner() {
     const visible = creditVisibleName(dispText, artist)
     if (visible) {
       setDispEnabled(true)
+      setHalftoneEnabled(false)
+      setDispFontRatio(CREDIT_DISP_FONT_RATIO)
+      setDispShift(CREDIT_DISP_SHIFT)
+      setDispShadow(true)
+      setDispShadowStrength(CREDIT_DISP_SHADOW_STRENGTH)
       if (visible !== dispText.trim()) setDispText(visible)
     }
   }, [creditUsesDisp, dispText, artist])
@@ -2037,7 +2052,7 @@ function ProtectPageInner() {
               </div>
             )}
 
-            {isCredit && (creditMark === 'ascii' || (creditMark === 'auto' && jwWriteHint?.kind === 'flat')) && (
+            {isCredit && creditUsesAscii && (
               <p className="form-hint" style={{ lineHeight: 1.6, color: 'var(--color-warning, #b26a00)' }}>
                 {f.flatCreditHint}
               </p>

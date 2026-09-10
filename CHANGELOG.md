@@ -9,8 +9,9 @@ by date until the first version tag is cut.
 
 ## [Unreleased]
 
-Nothing yet. Future user-facing changes will be listed here before being
-folded into a dated entry below.
+- Credit Quick on textured images now uses the small c024 displacement stamp
+  only. A leftover ASCII checkbox or filled artist name no longer paints a
+  full-screen letter grid.
 
 ## 2026-09-06
 

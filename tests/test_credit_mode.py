@@ -153,7 +153,19 @@ def test_credit_jingwei_sign_is_kept() -> None:
     assert recipe.disp_font_ratio == CREDIT_DISP_FONT_RATIO
 
 
-def test_user_displacement_keeps_sliders() -> None:
+def _assert_c024_displacement(recipe: object, *, text: str) -> None:
+    assert recipe.disp_enabled is True
+    assert recipe.disp_text == text
+    assert recipe.disp_font_ratio == CREDIT_DISP_FONT_RATIO
+    assert recipe.disp_shift == CREDIT_DISP_SHIFT
+    assert recipe.disp_shadow is True
+    assert recipe.disp_shadow_strength == CREDIT_DISP_SHADOW_STRENGTH
+    assert recipe.ascii_enabled is False
+    assert recipe.ascii_faint is False
+
+
+def test_credit_named_displacement_still_uses_c024() -> None:
+    """署名·快速 auto-fills the artist as displacement text — that is not a slider choice."""
     rng = np.random.default_rng(1)
     img = rng.integers(0, 255, (128, 160, 3), dtype=np.uint8)
     recipe = resolve_credit_recipe(
@@ -165,11 +177,58 @@ def test_user_displacement_keeps_sliders() -> None:
         displacement_enabled=True,
         displacement_text="Mine",
     )
+    _assert_c024_displacement(recipe, text="Mine")
+
+
+def test_credit_displacement_ignores_leftover_ascii() -> None:
+    rng = np.random.default_rng(1)
+    img = rng.integers(0, 255, (128, 160, 3), dtype=np.uint8)
+    recipe = resolve_credit_recipe(
+        mode="credit",
+        image=img,
+        halftone_enabled=True,
+        halftone_text="小明",
+        artist="小明",
+        displacement_enabled=True,
+        displacement_text="小明",
+        visible_mark="displacement",
+    )
+    _assert_c024_displacement(recipe, text="小明")
+
+
+def test_credit_auto_textured_ignores_leftover_ascii() -> None:
+    rng = np.random.default_rng(2)
+    img = rng.integers(0, 255, (128, 160, 3), dtype=np.uint8)
+    recipe = resolve_credit_recipe(
+        mode="credit",
+        image=img,
+        halftone_enabled=True,
+        halftone_text="小明",
+        artist="小明",
+        displacement_enabled=True,
+        displacement_text="小明",
+        visible_mark="auto",
+    )
+    _assert_c024_displacement(recipe, text="小明")
+
+
+def test_stealth_displacement_keeps_caller_sliders() -> None:
+    rng = np.random.default_rng(1)
+    img = rng.integers(0, 255, (128, 160, 3), dtype=np.uint8)
+    recipe = resolve_credit_recipe(
+        mode="stealth",
+        image=img,
+        halftone_enabled=False,
+        halftone_text="",
+        artist="小明",
+        displacement_enabled=True,
+        displacement_text="Mine",
+    )
     assert recipe.disp_enabled is True
     assert recipe.disp_text == "Mine"
     assert recipe.disp_font_ratio is None
     assert recipe.disp_shadow_strength is None
-    assert recipe.ascii_faint is False
+    assert recipe.ascii_enabled is False
 
 
 def test_credit_ascii_faint_kwargs_keep_large_faint_signature() -> None:
@@ -255,8 +314,8 @@ def test_credit_force_displacement_on_flat() -> None:
     recipe = resolve_credit_recipe(
         mode="credit",
         image=img,
-        halftone_enabled=False,
-        halftone_text="",
+        halftone_enabled=True,
+        halftone_text="小明",
         artist="小明",
         displacement_enabled=False,
         displacement_text="",

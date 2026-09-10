@@ -201,27 +201,16 @@ def _faint_ascii_recipe(
 def _c024_disp_recipe(
     *,
     ht_text: str,
-    disp_text: str,
     name: str,
-    keep_user_sliders: bool,
-    halftone_enabled: bool,
 ) -> CreditRecipe:
-    if keep_user_sliders:
-        return CreditRecipe(
-            ascii_enabled=halftone_enabled,
-            ascii_text=ht_text,
-            ascii_visibility=None,
-            ascii_signature=None,
-            disp_enabled=True,
-            disp_text=name,
-            disp_font_ratio=None,
-            disp_shift=None,
-            disp_shadow=None,
-            disp_shadow_strength=None,
-            ascii_faint=False,
-        )
+    """Dog c024 stamp only — never keep a leftover ASCII grid or stealth sliders.
+
+    署名·快速 fills displacement text from the artist name, so a non-empty
+    string is not a slider the user chose. Credit displacement is always the
+    experimental 7% / 3 px / 0.1518 rung.
+    """
     return CreditRecipe(
-        ascii_enabled=halftone_enabled,
+        ascii_enabled=False,
         ascii_text=ht_text,
         ascii_visibility=None,
         ascii_signature=None,
@@ -249,10 +238,9 @@ def resolve_credit_recipe(
 ) -> CreditRecipe:
     """Decide which visible layers credit mode should turn on.
 
-    ``*_visibility`` / displacement metrics are ``None`` when the caller
-    already chose that layer and should keep its own sliders.
-    ``ascii_faint`` is always on for credit + flat so the host-colour grid
-    is used even after the UI auto-enables ASCII.
+    Credit displacement is always the dog c024 rung (7% / 3 px / 0.1518) and
+    never keeps a leftover ASCII grid. ``ascii_faint`` is on for credit + flat
+    so the host-colour grid is used even after the UI auto-enables ASCII.
 
     ``visible_mark``: ``auto`` (flat vs texture), ``ascii`` (cat grid),
     or ``displacement`` (dog c024). A credit-mode logo is an extra stamp
@@ -281,10 +269,7 @@ def resolve_credit_recipe(
     if mark == "displacement":
         return _c024_disp_recipe(
             ht_text=ht_text,
-            disp_text=disp_text,
             name=name,
-            keep_user_sliders=_user_chose_layer_text(displacement_enabled, disp_text),
-            halftone_enabled=halftone_enabled,
         )
 
     from core.jingwei_protocol import estimate_flat_ratio
@@ -298,10 +283,7 @@ def resolve_credit_recipe(
         )
     return _c024_disp_recipe(
         ht_text=ht_text,
-        disp_text=disp_text,
         name=name,
-        keep_user_sliders=_user_chose_layer_text(displacement_enabled, disp_text),
-        halftone_enabled=halftone_enabled,
     )
 
 
