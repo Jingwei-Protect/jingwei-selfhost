@@ -208,23 +208,34 @@ def apply_visible_edits(
             layer = placement.get("layer", "displacement")
             cx, cy = float(placement["x"]), float(placement["y"])
             if layer == "displacement" and displacement and displacement.get("text", "").strip():
-                from core.displacement_watermark import apply_displacement_single_at
+                if displacement.get("credit"):
+                    from core.credit_displacement import apply_credit_displacement
 
-                # One box = one word rendered exactly at the box center, so the
-                # on-screen dashed box maps 1:1 to where the text lands. (The old
-                # band path auto-picked 3 extra rows and ignored X, so the boxes
-                # never matched the result.)
-                body = apply_displacement_single_at(
-                    body,
-                    text=displacement["text"].strip(),
-                    shift_px=int(displacement.get("shift", 10)),
-                    font_size_ratio=float(displacement.get("font_ratio", 0.15)),
-                    seed=seed_base + 1000 + i,
-                    shadow_enabled=bool(displacement.get("shadow", True)),
-                    shadow_strength=float(displacement.get("shadow_strength", 0.35)),
-                    anchor_x=cx,
-                    anchor_y=cy,
-                )
+                    body = apply_credit_displacement(
+                        body,
+                        displacement["text"].strip(),
+                        anchor_x=cx,
+                        anchor_y=cy,
+                        seed=seed_base + 1000 + i,
+                    )
+                else:
+                    from core.displacement_watermark import apply_displacement_single_at
+
+                    # One box = one word rendered exactly at the box center, so the
+                    # on-screen dashed box maps 1:1 to where the text lands. (The old
+                    # band path auto-picked 3 extra rows and ignored X, so the boxes
+                    # never matched the result.)
+                    body = apply_displacement_single_at(
+                        body,
+                        text=displacement["text"].strip(),
+                        shift_px=int(displacement.get("shift", 10)),
+                        font_size_ratio=float(displacement.get("font_ratio", 0.15)),
+                        seed=seed_base + 1000 + i,
+                        shadow_enabled=bool(displacement.get("shadow", True)),
+                        shadow_strength=float(displacement.get("shadow_strength", 0.35)),
+                        anchor_x=cx,
+                        anchor_y=cy,
+                    )
             elif layer == "blur_bar" and blur_opts:
                 body = _apply_blur_placement(body, placement, blur_opts)
             elif layer == "emboss" and emboss_opts:

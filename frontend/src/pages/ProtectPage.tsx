@@ -39,6 +39,7 @@ import {
   CREDIT_DISP_SHIFT,
   creditUsesAscii as creditMarkUsesAscii,
   nextCreditVisibleLayers,
+  creditDispPinFromHint,
   type CreditVisibleMark,
 } from '../lib/creditVisibleLayers'
 import { PROTECT_PAGE_CANONICAL, SITE_NAME } from '../lib/site'
@@ -550,9 +551,10 @@ function ProtectPageInner() {
 
   useEffect(() => () => { revokePreviewUrl() }, [revokePreviewUrl])
 
-  const fetchJwWriteHint = useCallback(async (f: File) => {
+  const fetchJwWriteHint = useCallback(async (f: File, stampText?: string) => {
     const fd = new FormData()
     fd.append('image', f)
+    if (stampText?.trim()) fd.append('displacement_text', stampText.trim())
     try {
       const res = await fetch('/api/protect/jw-hint', { method: 'POST', body: fd })
       const data = await res.json()
@@ -563,6 +565,10 @@ function ProtectPageInner() {
           texture_ratio: data.texture_ratio,
           summary: data.summary,
           suggest: data.suggest,
+          credit_disp_x: data.credit_disp_x,
+          credit_disp_y: data.credit_disp_y,
+          credit_disp_w: data.credit_disp_w,
+          credit_disp_h: data.credit_disp_h,
         })
       } else {
         setJwWriteHint(null)
@@ -1551,6 +1557,7 @@ function ProtectPageInner() {
   // Boxes become the single source of truth; the server skips that layer's
   // automatic render (see protect.py), so there is never a duplicate.
   const dispSeededRef = useRef(false)
+  const lastAutoCreditPinRef = useRef<{ x: number; y: number } | null>(null)
   const blurSeededRef = useRef(false)
   const feSeededRef = useRef(false)
   const htSeededRef = useRef(false)
@@ -1605,8 +1612,19 @@ function ProtectPageInner() {
     const embossOn = embossEnabled
     // One placement = one word. Seed a single centered box; the user adds more
     // by clicking if they want extras.
-    const makeDispBoxes = (): VisibleAddPlacement[] =>
-      [{ layer: 'displacement', x: 0.5, y: 0.5 }]
+    const makeDispBoxes = (): VisibleAddPlacement[] => {
+      if (isCredit) {
+        const pin = creditDispPinFromHint(jwWriteHint)
+        lastAutoCreditPinRef.current = { x: pin.x, y: pin.y }
+        return [{
+          layer: 'displacement',
+          x: pin.x,
+          y: pin.y,
+          ...(pin.w && pin.h ? { w: pin.w, h: pin.h } : {}),
+        }]
+      }
+      return [{ layer: 'displacement', x: 0.5, y: 0.5 }]
+    }
     // One placement = one patch. Seed a single box; the user drags it onto the
     // face (or adds more by clicking). Avoid auto-spreading onto the face.
     const makeFeBoxes = (): VisibleAddPlacement[] =>
@@ -1642,7 +1660,21 @@ function ProtectPageInner() {
       changed = true
     } else if (!dispOn && dispSeededRef.current) {
       placements = placements.filter(p => p.layer !== 'displacement')
+      lastAutoCreditPinRef.current = null
       changed = true
+    } else if (dispOn && isCredit && dispSeededRef.current && jwWriteHint) {
+      const pin = creditDispPinFromHint(jwWriteHint)
+      const auto = lastAutoCreditPinRef.current
+      const cur = placements.find(p => p.layer === 'displacement')
+      const stillAuto = Boolean(
+        cur && auto
+        && Math.abs(cur.x - auto.x) < 0.02
+        && Math.abs(cur.y - auto.y) < 0.02,
+      )
+      if (stillAuto && cur && (Math.abs(cur.x - pin.x) > 0.01 || Math.abs(cur.y - pin.y) > 0.01)) {
+        placements = [...placements.filter(p => p.layer !== 'displacement'), ...makeDispBoxes()]
+        changed = true
+      }
     }
     if (blurOn && !blurSeededRef.current) {
       placements = [...placements.filter(p => p.layer !== 'blur_bar'), ...makeBlurBoxes(blurCount)]
@@ -1718,6 +1750,7 @@ function ProtectPageInner() {
   }, [
     dispEnabled, dispText, dispMode, blurEnabled, blurRegionMode, blurCount,
     feEnabled, feText, halftonePlacementEnabled, asciiPosition, embossEnabled, logoOn, logoPosition,
+    isCredit, jwWriteHint,
     resetPreviewStage, livePreviewImg, resultImg,
     fetchLivePreview, clearResultDisplay,
   ])

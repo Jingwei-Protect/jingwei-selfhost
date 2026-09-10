@@ -55,3 +55,30 @@ export function nextCreditVisibleLayers(
     dispShadowStrength: CREDIT_DISP_SHADOW_STRENGTH,
   }
 }
+
+export type CreditDispPin = {
+  x: number
+  y: number
+  w?: number
+  h?: number
+}
+
+/** Default dashed-box pin from the server hint (best-host). Fallback: canvas centre. */
+export function creditDispPinFromHint(hint: {
+  credit_disp_x?: number
+  credit_disp_y?: number
+  credit_disp_w?: number
+  credit_disp_h?: number
+} | null | undefined): CreditDispPin {
+  const x = hint?.credit_disp_x
+  const y = hint?.credit_disp_y
+  if (typeof x === 'number' && typeof y === 'number') {
+    return {
+      x,
+      y,
+      w: hint?.credit_disp_w,
+      h: hint?.credit_disp_h,
+    }
+  }
+  return { x: 0.5, y: 0.5 }
+}

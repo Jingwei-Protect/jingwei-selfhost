@@ -12,6 +12,9 @@ by date until the first version tag is cut.
 - Credit Quick on textured images now uses the small c024 displacement stamp
   only. A leftover ASCII checkbox or filled artist name no longer paints a
   full-screen letter grid.
+- Credit Quick displacement is subject-sized and host-calibrated: the dashed
+  box is only a pin you can drag; size and faintness stay c024-like after
+  drag.
 
 ## 2026-09-06
 

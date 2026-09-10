@@ -1,0 +1,289 @@
+"""署名·快速 displacement stamp — one c024-style mark, draggable.
+
+The experimental dog c024 rung is not a fixed 7% of the whole canvas plus a
+locked 0.1518 shadow. It is:
+
+- one word, once
+- font 7% of the *subject* short side (flat margins do not count)
+- default pin at ``best_host``
+- shadow solved so conspicuity at the pin is ~0.24
+
+Dragging only moves the pin. Size and faintness are recomputed there.
+"""
+
+from __future__ import annotations
+
+from typing import NamedTuple
+
+import cv2
+import numpy as np
+
+from core.credit_mode import CREDIT_DISP_FONT_RATIO, CREDIT_DISP_SHIFT
+from core.displacement_watermark import (
+    _FEATHER_SIGMA,
+    _apply_mask_displacement,
+    _random_shift,
+    _render_word_mask,
+)
+from core.host_texture import (
+    best_host,
+    calibrate_strength,
+    mark_amplitude,
+    region_texture,
+)
+
+CREDIT_CONSPICUITY = 0.24
+CREDIT_CALIBRATE_MAX_SIDE = 640
+CREDIT_MAX_MARK_WIDTH_RATIO = 0.85
+_BORDER_DIST = 18.0
+_SHIFT_PX = CREDIT_DISP_SHIFT
+
+
+class CreditStampLayout(NamedTuple):
+    font_size: int
+    mask_h: int
+    mask_w: int
+    x: int
+    y: int
+    anchor_x: float
+    anchor_y: float
+    box_w: float
+    box_h: float
+
+
+def content_bbox(image: np.ndarray) -> tuple[int, int, int, int]:
+    """Tight box of pixels that are not the border fill colour.
+
+    Large paper / sky margins (the extra yellow above the puppy) drop out, so
+    font size tracks the subject instead of the canvas.
+    """
+    if image.ndim != 3 or image.shape[2] < 3:
+        h, w = image.shape[:2]
+        return 0, 0, w, h
+    h, w = image.shape[:2]
+    rgb = image[:, :, :3].astype(np.float32)
+    if h < 8 or w < 8:
+        return 0, 0, w, h
+    frame = np.concatenate(
+        [
+            rgb[0, :].reshape(-1, 3),
+            rgb[-1, :].reshape(-1, 3),
+            rgb[1:-1, 0],
+            rgb[1:-1, -1],
+        ],
+        axis=0,
+    )
+    border = np.median(frame, axis=0)
+    dist = np.linalg.norm(rgb - border, axis=2)
+    mask = dist > _BORDER_DIST
+    if float(mask.mean()) < 0.04:
+        return 0, 0, w, h
+    ys, xs = np.where(mask)
+    pad = 2
+    x0 = max(0, int(xs.min()) - pad)
+    y0 = max(0, int(ys.min()) - pad)
+    x1 = min(w, int(xs.max()) + 1 + pad)
+    y1 = min(h, int(ys.max()) + 1 + pad)
+    if (x1 - x0) < 32 or (y1 - y0) < 32:
+        return 0, 0, w, h
+    return x0, y0, x1, y1
+
+
+def content_short_side(image: np.ndarray) -> int:
+    """min(width, height) of ``content_bbox``."""
+    x0, y0, x1, y1 = content_bbox(image)
+    return max(32, min(x1 - x0, y1 - y0))
+
+
+def _word_mask_for(image: np.ndarray, text: str) -> tuple[np.ndarray, int]:
+    """Render the word; back the font off if it would overflow the subject."""
+    name = (text or "").strip() or "Jingwei"
+    short = content_short_side(image)
+    x0, _y0, x1, _y1 = content_bbox(image)
+    width_limit = max(32, int((x1 - x0) * CREDIT_MAX_MARK_WIDTH_RATIO))
+    size = max(12, int(round(short * CREDIT_DISP_FONT_RATIO)))
+    mask = _render_word_mask(name, size, rotation=0.0)
+    if mask.shape[1] > width_limit:
+        size = max(12, int(size * width_limit / mask.shape[1]))
+        mask = _render_word_mask(name, size, rotation=0.0)
+    return mask, size
+
+
+def credit_font_size(image: np.ndarray, text: str) -> int:
+    """Font px used for the credit stamp (7% of subject short side)."""
+    _mask, size = _word_mask_for(image, text)
+    return size
+
+
+def _ink_center(mask: np.ndarray) -> tuple[float, float]:
+    ys, xs = np.nonzero(mask > 0.3)
+    if xs.size and ys.size:
+        return (int(xs.min()) + int(xs.max())) / 2.0, (int(ys.min()) + int(ys.max())) / 2.0
+    mh, mw = mask.shape
+    return mw / 2.0, mh / 2.0
+
+
+def _place_mask(
+    image: np.ndarray,
+    mask: np.ndarray,
+    *,
+    anchor_x: float | None,
+    anchor_y: float | None,
+) -> tuple[int, int]:
+    """Top-left of the mask: explicit pin, or ``best_host``."""
+    h, w = image.shape[:2]
+    mh, mw = mask.shape
+    if mh >= h or mw >= w:
+        return 0, 0
+    if anchor_x is not None and anchor_y is not None:
+        ink_cx, ink_cy = _ink_center(mask)
+        px = int(round(float(np.clip(anchor_x, 0.0, 1.0)) * w - ink_cx))
+        py = int(round(float(np.clip(anchor_y, 0.0, 1.0)) * h - ink_cy))
+        px = max(0, min(px, max(0, w - mw)))
+        py = max(0, min(py, max(0, h - mh)))
+        return px, py
+    x, y, _host = best_host(image, mh, mw)
+    return x, y
+
+
+def _glyph_region(shape: tuple[int, int], mask: np.ndarray, x: int, y: int) -> np.ndarray:
+    region = np.zeros(shape, dtype=np.uint8)
+    mh, mw = mask.shape
+    h, w = shape
+    y1 = min(h, y + mh)
+    x1 = min(w, x + mw)
+    if y1 <= y or x1 <= x:
+        return region.astype(bool)
+    patch = (mask[: y1 - y, : x1 - x] > 0.1).astype(np.uint8)
+    region[y:y1, x:x1] = patch
+    grown = cv2.dilate(region, np.ones((2 * _SHIFT_PX + 3, 2 * _SHIFT_PX + 3), np.uint8))
+    return grown.astype(bool)
+
+
+def plan_credit_stamp(
+    image: np.ndarray,
+    text: str,
+    *,
+    anchor_x: float | None = None,
+    anchor_y: float | None = None,
+) -> CreditStampLayout:
+    """Geometry of the credit stamp without rendering it."""
+    h, w = image.shape[:2]
+    mask, font_size = _word_mask_for(image, text)
+    mh, mw = mask.shape
+    x, y = _place_mask(image, mask, anchor_x=anchor_x, anchor_y=anchor_y)
+    ink_cx, ink_cy = _ink_center(mask)
+    cx = (x + ink_cx) / max(1, w)
+    cy = (y + ink_cy) / max(1, h)
+    return CreditStampLayout(
+        font_size=font_size,
+        mask_h=mh,
+        mask_w=mw,
+        x=x,
+        y=y,
+        anchor_x=float(cx),
+        anchor_y=float(cy),
+        box_w=float(mw) / max(1, w),
+        box_h=float(mh) / max(1, h),
+    )
+
+
+def credit_stamp_hint(image: np.ndarray, text: str = "Jingwei") -> dict[str, float]:
+    """Default pin + dashed-box size for the protect-page hint."""
+    layout = plan_credit_stamp(image, text)
+    return {
+        "credit_disp_x": round(layout.anchor_x, 4),
+        "credit_disp_y": round(layout.anchor_y, 4),
+        "credit_disp_w": round(layout.box_w, 4),
+        "credit_disp_h": round(layout.box_h, 4),
+    }
+
+
+def _calibrate_shadow(
+    image: np.ndarray,
+    mask: np.ndarray,
+    x: int,
+    y: int,
+    dx: int,
+    dy: int,
+) -> float:
+    """Bisect shadow on a downscaled copy so full-res preview stays cheap."""
+    h, w = image.shape[:2]
+    scale = min(1.0, CREDIT_CALIBRATE_MAX_SIDE / float(max(h, w)))
+    if scale < 0.999:
+        sw, sh = max(32, int(round(w * scale))), max(32, int(round(h * scale)))
+        small = cv2.resize(image, (sw, sh), interpolation=cv2.INTER_AREA)
+        smh = max(4, int(round(mask.shape[0] * scale)))
+        smw = max(4, int(round(mask.shape[1] * scale)))
+        smask = cv2.resize(mask, (smw, smh), interpolation=cv2.INTER_AREA)
+        sx = int(round(x * scale))
+        sy = int(round(y * scale))
+        sdx = max(1, int(round(dx * scale))) if dx else 0
+        sdy = max(1, int(round(dy * scale))) if dy else 0
+        work, mwork, px, py, ddx, ddy = small, smask, sx, sy, sdx, sdy
+    else:
+        work, mwork, px, py, ddx, ddy = image, mask, x, y, dx, dy
+
+    region = _glyph_region(work.shape[:2], mwork, px, py)
+    host = region_texture(work, region)
+    target_amp = CREDIT_CONSPICUITY * host
+
+    def render(strength: float) -> np.ndarray:
+        return _apply_mask_displacement(
+            work,
+            mwork,
+            px,
+            py,
+            ddx,
+            ddy,
+            _FEATHER_SIGMA,
+            shadow_enabled=True,
+            shadow_strength=float(strength),
+        )
+
+    if target_amp <= 0.0:
+        return 0.0
+    at_floor = render(0.0)
+    if mark_amplitude(work, at_floor, region) >= target_amp:
+        return 0.0
+    strength, _marked, _amp = calibrate_strength(
+        render, work, region, target_amp, iterations=12,
+    )
+    return float(strength)
+
+
+def apply_credit_displacement(
+    image: np.ndarray,
+    text: str,
+    *,
+    anchor_x: float | None = None,
+    anchor_y: float | None = None,
+    seed: int = 42,
+) -> np.ndarray:
+    """Paint one c024-style displacement stamp. ``anchor_*`` is the pin centre."""
+    if image.dtype != np.uint8 or image.ndim != 3 or image.shape[2] != 3:
+        raise ValueError(f"image must be HxWx3 uint8, got {image.shape} {image.dtype}")
+    name = (text or "").strip()
+    if not name:
+        return image.copy()
+
+    mask, _font = _word_mask_for(image, name)
+    x, y = _place_mask(image, mask, anchor_x=anchor_x, anchor_y=anchor_y)
+    region = _glyph_region(image.shape[:2], mask, x, y)
+    if region_texture(image, region) < 1.0:
+        # Uniform fill (sky / paper): nothing to hide in; do not paint a grey overlay.
+        return image.copy()
+    rng = np.random.default_rng(seed)
+    dx, dy = _random_shift(_SHIFT_PX, rng)
+    strength = _calibrate_shadow(image, mask, x, y, dx, dy)
+    return _apply_mask_displacement(
+        image.copy(),
+        mask,
+        x,
+        y,
+        dx,
+        dy,
+        _FEATHER_SIGMA,
+        shadow_enabled=True,
+        shadow_strength=strength,
+    )

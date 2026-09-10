@@ -191,6 +191,10 @@ export type JwWriteHint = {
   texture_ratio: number
   summary: string
   suggest: string
+  credit_disp_x?: number
+  credit_disp_y?: number
+  credit_disp_w?: number
+  credit_disp_h?: number
 }
 
 export const JW_INVISIBLE_INTRO =

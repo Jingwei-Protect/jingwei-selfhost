@@ -521,6 +521,7 @@ def _visible_edit_layer_opts(
     displacement_seed: int,
     displacement_shadow: bool,
     displacement_shadow_strength: float = 0.35,
+    credit_stamp: bool = False,
     blur_bar_enabled: bool,
     blur_bar_text: str,
     blur_bar_sigma: int,
@@ -545,6 +546,7 @@ def _visible_edit_layer_opts(
                 "seed": displacement_seed,
                 "shadow": displacement_shadow,
                 "shadow_strength": displacement_shadow_strength,
+                "credit": credit_stamp,
             }
 
     blur_opts = None
@@ -595,6 +597,7 @@ def _apply_visible_edits_to_frame(
     displacement_seed: int,
     displacement_shadow: bool,
     displacement_shadow_strength: float = 0.35,
+    credit_stamp: bool = False,
     blur_bar_enabled: bool,
     blur_bar_text: str,
     blur_bar_sigma: int,
@@ -624,6 +627,7 @@ def _apply_visible_edits_to_frame(
         displacement_seed=displacement_seed,
         displacement_shadow=displacement_shadow,
         displacement_shadow_strength=displacement_shadow_strength,
+        credit_stamp=credit_stamp,
         blur_bar_enabled=blur_bar_enabled,
         blur_bar_text=blur_bar_text,
         blur_bar_sigma=blur_bar_sigma,
@@ -1323,6 +1327,7 @@ async def protect(
                         "seed": displacement_seed,
                         "shadow": _bool(displacement_shadow),
                         "shadow_strength": displacement_shadow_strength,
+                        "credit": mode == "credit",
                     }
 
             blur_opts = None
@@ -1391,6 +1396,16 @@ async def protect(
             return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
         except Exception as exc:
             status_msgs.append(f"可见层编辑失败：{exc}")
+    elif (
+        mode == "credit"
+        and _bool(displacement_enabled)
+        and displacement_text.strip()
+    ):
+        from core.credit_displacement import apply_credit_displacement
+
+        protected = apply_credit_displacement(protected, displacement_text.strip())
+        metrics = evaluate_protection(image_array, protected[: image_array.shape[0], : image_array.shape[1]])
+        quality_label, quality_text = quality_assessment(metrics["psnr"])
 
     # Traceability anchor (可追踪优先): stamp LAST so the four faint anchors +
     # year-month/artist-code payload ride on TOP of every visible & invisible
@@ -1565,15 +1580,18 @@ async def protect(
 async def protect_jw_hint(
     request: Request,
     image: UploadFile = File(...),
+    displacement_text: str = Form(""),
 ) -> JSONResponse:
     """Plain-language hint for JW write suitability (before protect)."""
     check_rate_limit(request, "protect", rate_limit_protect_per_min())
     try:
         image_array, _ = _read_upload(image)
         check_image_pixels(image_array)
+        from core.credit_displacement import credit_stamp_hint
         from core.jingwei_protocol import jw_write_hint_for_image
 
         hint = jw_write_hint_for_image(image_array)
+        hint.update(credit_stamp_hint(image_array, displacement_text))
         return JSONResponse({"ok": True, **hint})
     except ValueError as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
@@ -1906,6 +1924,7 @@ async def protect_preview(
             displacement_seed=displacement_seed,
             displacement_shadow=_bool(displacement_shadow),
             displacement_shadow_strength=displacement_shadow_strength,
+            credit_stamp=mode == "credit",
             blur_bar_enabled=_bool(blur_bar_enabled),
             blur_bar_text=blur_bar_text,
             blur_bar_sigma=blur_bar_sigma,

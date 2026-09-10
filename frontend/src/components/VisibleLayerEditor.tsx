@@ -565,9 +565,14 @@ const VisibleLayerEditor = forwardRef<VisibleLayerEditorHandle, Props>(function 
       ow = sq / w
       oh = sq / h
     } else if (p.layer === 'displacement') {
-      const bandPx = displacementFontRatio * Math.min(w, h) * DISPLACEMENT_BAND_H_FACTOR
-      oh = Math.min(0.4, bandPx / h)
-      ow = oh
+      if (p.w && p.h) {
+        ow = p.w
+        oh = p.h
+      } else {
+        const bandPx = displacementFontRatio * Math.min(w, h) * DISPLACEMENT_BAND_H_FACTOR
+        oh = Math.min(0.4, bandPx / h)
+        ow = oh
+      }
     } else if (p.layer === 'logo') {
       const side = Math.max(0.06, Math.min(0.55, logoScale)) * Math.min(w, h)
       ow = side / w

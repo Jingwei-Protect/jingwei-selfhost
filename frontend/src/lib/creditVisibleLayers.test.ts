@@ -9,6 +9,7 @@ import {
   CREDIT_DISP_SHIFT,
   creditUsesAscii,
   nextCreditVisibleLayers,
+  creditDispPinFromHint,
 } from './creditVisibleLayers.ts'
 
 assert.equal(creditUsesAscii('ascii', 'rich'), true)
@@ -42,5 +43,20 @@ const beforeHint = nextCreditVisibleLayers('auto', null)
 assert.equal(beforeHint.asciiEnabled, false)
 assert.equal(beforeHint.dispEnabled, true)
 assert.equal(beforeHint.dispFontRatio, CREDIT_DISP_FONT_RATIO)
+
+const fallbackPin = creditDispPinFromHint(null)
+assert.equal(fallbackPin.x, 0.5)
+assert.equal(fallbackPin.y, 0.5)
+
+const hostPin = creditDispPinFromHint({
+  credit_disp_x: 0.48,
+  credit_disp_y: 0.71,
+  credit_disp_w: 0.22,
+  credit_disp_h: 0.08,
+})
+assert.equal(hostPin.x, 0.48)
+assert.equal(hostPin.y, 0.71)
+assert.equal(hostPin.w, 0.22)
+assert.equal(hostPin.h, 0.08)
 
 console.log('creditVisibleLayers.test.ts ok')
