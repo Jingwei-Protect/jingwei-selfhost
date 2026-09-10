@@ -27,7 +27,8 @@ CREDIT_DISP_SHIFT = 6
 CREDIT_DISP_SHADOW_STRENGTH = 0.1518
 CREDIT_LOGO_OPACITY = 0.06
 CREDIT_LOGO_SCALE = 0.08
-CREDIT_LOGO_SHIFT = 3
+# Same 6 px warp as credit text displacement (dog c024).
+CREDIT_LOGO_SHIFT = CREDIT_DISP_SHIFT
 
 VisibleMark = Literal["auto", "ascii", "displacement"]
 

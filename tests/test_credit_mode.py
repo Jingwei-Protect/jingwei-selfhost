@@ -338,7 +338,8 @@ def test_credit_logo_uses_faint_opacity() -> None:
     ) == CREDIT_LOGO_OPACITY
     assert CREDIT_LOGO_OPACITY == pytest.approx(0.06)
     assert CREDIT_LOGO_SCALE == pytest.approx(0.08)
-    assert CREDIT_LOGO_SHIFT == 3
+    assert CREDIT_LOGO_SHIFT == CREDIT_DISP_SHIFT
+    assert CREDIT_LOGO_SHIFT == 6
     assert resolve_credit_logo_scale(mode="credit", logo_present=True, requested=0.18) == pytest.approx(
         CREDIT_LOGO_SCALE
     )

@@ -21,6 +21,9 @@ by date until the first version tag is cut.
   busiest petals, so that faintness stays readable.
 - Credit Quick displacement uses the locked Doubao c024 font/shadow (7% /
   0.1518) with a 6 px warp (the chosen ladder rung), and no extra fade.
+- Credit Quick logo stamps use the same 6 px displacement warp as the text.
+- Flash-card download no longer fetch()es the result blob URL (blocked by
+  production CSP); it reuses the in-memory PNG and allows `connect-src blob:`.
 
 ## 2026-09-06
 

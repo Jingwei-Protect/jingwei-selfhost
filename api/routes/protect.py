@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import io
 import math
@@ -2037,7 +2038,7 @@ async def protect_holo_clip(
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
 
     try:
-        mp4 = export_holo_mp4_from_image(image_array)
+        mp4 = await asyncio.to_thread(export_holo_mp4_from_image, image_array)
     except HoloCaptureError as exc:
         return JSONResponse(
             {

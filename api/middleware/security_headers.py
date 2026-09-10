@@ -18,7 +18,7 @@ _CSP = (
     "font-src 'self' https://fonts.gstatic.com data:; "
     "img-src 'self' data: blob:; "
     "media-src 'self' blob:; "
-    "connect-src 'self';"
+    "connect-src 'self' blob:;"
 )
 
 _SECURITY_HEADERS: tuple[tuple[str, str], ...] = (

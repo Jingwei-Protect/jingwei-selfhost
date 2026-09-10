@@ -14,8 +14,9 @@ import FeedbackHelpLink from '../components/FeedbackHelpLink'
 import { JwIcon } from '../components/jw/JwIcon'
 import JingweiMiniIcon from '../components/JingweiMiniIcon'
 import { prepareImageForUpload, formatResizeNotice, type ImageUploadCopy, type PreparedImage } from '../utils/imageResize'
-import { dataUrlToUint8, downloadProtectedImage, downloadUrl } from '../utils/downloadDataUrl'
+import { downloadProtectedImage, downloadUrl } from '../utils/downloadDataUrl'
 import { isRevocableObjectUrl } from '../lib/protectMemory'
+import { fileForHoloClip, jpegForHoloUpload, objectUrlFromResultImage } from '../lib/holoClipUpload'
 import { HoloCard } from '../holo-card/HoloCard'
 import { translateApiError } from '../lib/apiErrors'
 import { formatClientError } from '../lib/clientErrors'
@@ -214,23 +215,7 @@ function adoptObjectUrl(next: string | null, slot: { current: string | null }): 
 }
 
 function dataUrlToDisplayUrl(raw: string): string {
-  if (raw.startsWith('blob:') || !raw.startsWith('data:')) return raw
-  const { mime, bytes } = dataUrlToUint8(raw)
-  const copy = new Uint8Array(bytes.byteLength)
-  copy.set(bytes)
-  return URL.createObjectURL(new Blob([copy.buffer], { type: mime || 'image/jpeg' }))
-}
-
-async function resultImageToFile(resultImg: string): Promise<File> {
-  if (resultImg.startsWith('data:')) {
-    const { mime, bytes } = dataUrlToUint8(resultImg)
-    const copy = new Uint8Array(bytes.byteLength)
-    copy.set(bytes)
-    return new File([copy], 'protected.png', { type: mime || 'image/png' })
-  }
-  const res = await fetch(resultImg)
-  const blob = await res.blob()
-  return new File([blob], 'protected.png', { type: blob.type || 'image/png' })
+  return objectUrlFromResultImage(raw).url
 }
 
 
@@ -495,6 +480,7 @@ function ProtectPageInner() {
 
   const previewUrlRef = useRef<string | null>(null)
   const resultUrlRef = useRef<string | null>(null)
+  const resultBlobRef = useRef<Blob | null>(null)
   const comparisonUrlRef = useRef<string | null>(null)
   const livePreviewUrlRef = useRef<string | null>(null)
   const preparedUploadRef = useRef<{ key: string; prepared: PreparedImage } | null>(null)
@@ -507,6 +493,7 @@ function ProtectPageInner() {
   const clearResultDisplay = useCallback(() => {
     adoptObjectUrl(null, resultUrlRef)
     adoptObjectUrl(null, comparisonUrlRef)
+    resultBlobRef.current = null
     setResultImg(null)
     setComparison(null)
     setLightboxSrc(null)
@@ -973,9 +960,15 @@ function ProtectPageInner() {
       const data = await res.json()
       if (data.ok) {
         clearLivePreviewDisplay()
-        const nextResult = typeof data.image === 'string' ? dataUrlToDisplayUrl(data.image) : null
+        if (typeof data.image === 'string') {
+          const packed = objectUrlFromResultImage(data.image)
+          resultBlobRef.current = packed.blob
+          setResultImg(adoptObjectUrl(packed.url, resultUrlRef))
+        } else {
+          resultBlobRef.current = null
+          setResultImg(adoptObjectUrl(null, resultUrlRef))
+        }
         const nextComparison = typeof data.comparison === 'string' ? dataUrlToDisplayUrl(data.comparison) : null
-        setResultImg(adoptObjectUrl(nextResult, resultUrlRef))
         setComparison(adoptObjectUrl(nextComparison, comparisonUrlRef))
         setMetrics(data.metrics)
         setQualityLabel(data.quality_label)
@@ -1863,7 +1856,10 @@ function ProtectPageInner() {
     setHoloLoading(true)
     setHoloError('')
     try {
-      const upload = await resultImageToFile(resultImg)
+      const upload = await fileForHoloClip(
+        { storedBlob: resultBlobRef.current, displayUrl: resultImg },
+        { compress: jpegForHoloUpload },
+      )
       const fd = new FormData()
       fd.append('image', upload)
       const headers: HeadersInit = {}
@@ -1888,11 +1884,11 @@ function ProtectPageInner() {
     } catch (e: unknown) {
       const isNetwork = e instanceof TypeError
         || (e instanceof Error && /failed to fetch|networkerror|load failed/i.test(e.message))
-      setHoloError(isNetwork ? m.clientErrors.networkFailed : formatClientError(locale, e, t.errors.holoFailed))
+      setHoloError(isNetwork ? m.clientErrors.holoNetworkFailed : formatClientError(locale, e, t.errors.holoFailed))
     } finally {
       setHoloLoading(false)
     }
-  }, [resultImg, holoLoading, file, apiErr, t.errors.holoFailed, m.clientErrors.networkFailed, locale])
+  }, [resultImg, holoLoading, file, apiErr, t.errors.holoFailed, m.clientErrors.holoNetworkFailed, locale])
 
   return (
     <div className="page-section">

@@ -10,6 +10,9 @@ export function formatClientError(locale: Locale, err: unknown, fallback = ''): 
   const msgs = getMessages(locale).clientErrors
 
   if (raw === `${CODE_PREFIX}network`) return msgs.networkFailed
+  if (raw === `${CODE_PREFIX}holo_network`) return msgs.holoNetworkFailed
+  if (raw === `${CODE_PREFIX}holo_result_expired`) return msgs.holoResultExpired
+  if (raw === `${CODE_PREFIX}holo_too_large`) return msgs.holoTooLarge
   if (raw === `${CODE_PREFIX}api_not_found`) return msgs.apiNotFound
   if (raw === `${CODE_PREFIX}load_file`) return msgs.loadFileFailed
   if (raw.startsWith(`${CODE_PREFIX}http:`)) {
