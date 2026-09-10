@@ -6,7 +6,13 @@ locked 0.1518 shadow. It is:
 - one word, once
 - font 7% of the *subject* short side (flat margins do not count)
 - pin at ``best_host`` inside the subject (yellow/sky margins do not count)
-- shadow solved so conspicuity at the pin is ~0.24
+- 深浅 capped at c024-on-fur amplitude, not ``0.24 × host texture``
+
+A constant conspicuity ratio makes floral hosts a grey overlay: busy Sobel
+allows a large absolute luma/chroma push. c024 on chest fur is ~6 luma;
+that absolute cap is what the eye matches across pictures. Displacement
+that already exceeds the cap is mixed back toward the host (a smaller
+shift does not help once neighbouring petals differ in colour).
 """
 
 from __future__ import annotations
@@ -16,7 +22,11 @@ from typing import NamedTuple
 import cv2
 import numpy as np
 
-from core.credit_mode import CREDIT_DISP_FONT_RATIO, CREDIT_DISP_SHIFT
+from core.credit_mode import (
+    CREDIT_DISP_FONT_RATIO,
+    CREDIT_DISP_SHADOW_STRENGTH,
+    CREDIT_DISP_SHIFT,
+)
 from core.displacement_watermark import (
     _FEATHER_SIGMA,
     _apply_mask_displacement,
@@ -31,6 +41,8 @@ from core.host_texture import (
 )
 
 CREDIT_CONSPICUITY = 0.24
+# c024 on gold chest fur is ~6 luma. 0.24 × floral Sobel is many times that.
+CREDIT_MAX_AMPLITUDE = 6.0
 CREDIT_CALIBRATE_MAX_SIDE = 640
 CREDIT_MAX_MARK_WIDTH_RATIO = 0.85
 _BORDER_DIST = 18.0
@@ -273,6 +285,31 @@ def credit_stamp_hint(image: np.ndarray, text: str = "Jingwei") -> dict[str, flo
     }
 
 
+def _target_amplitude(image: np.ndarray, region: np.ndarray) -> float:
+    """Allowed luma: min(c024 ratio × host, c024-on-fur absolute)."""
+    host = region_texture(image, region)
+    return min(CREDIT_CONSPICUITY * host, CREDIT_MAX_AMPLITUDE)
+
+
+def _fade_to_amplitude(
+    clean: np.ndarray,
+    marked: np.ndarray,
+    region: np.ndarray,
+    target: float,
+) -> np.ndarray:
+    """Lerp the stamp toward the host when warp-only is already darker than c024.
+
+    Shadow bisection cannot go below displacement-only. On petals that floor
+    already exceeds the fur stamp, so the mix is the faintness knob.
+    """
+    amp = mark_amplitude(clean, marked, region)
+    if amp <= target or amp <= 0.0 or target <= 0.0:
+        return marked
+    mix = target / amp
+    blended = clean.astype(np.float32) * (1.0 - mix) + marked.astype(np.float32) * mix
+    return np.clip(np.round(blended), 0, 255).astype(np.uint8)
+
+
 def _calibrate_shadow(
     image: np.ndarray,
     mask: np.ndarray,
@@ -281,7 +318,11 @@ def _calibrate_shadow(
     dx: int,
     dy: int,
 ) -> float:
-    """Bisect shadow on a downscaled copy so full-res preview stays cheap."""
+    """Bisect shadow on a downscaled copy so full-res preview stays cheap.
+
+    Upper bound is the locked c024 knob (0.1518). Floral hosts must not
+    search toward shadow 1.0 to hit ``0.24 × texture``.
+    """
     h, w = image.shape[:2]
     scale = min(1.0, CREDIT_CALIBRATE_MAX_SIDE / float(max(h, w)))
     if scale < 0.999:
@@ -299,8 +340,7 @@ def _calibrate_shadow(
         work, mwork, px, py, ddx, ddy = image, mask, x, y, dx, dy
 
     region = _glyph_region(work.shape[:2], mwork, px, py)
-    host = region_texture(work, region)
-    target_amp = CREDIT_CONSPICUITY * host
+    target_amp = _target_amplitude(work, region)
 
     def render(strength: float) -> np.ndarray:
         return _apply_mask_displacement(
@@ -321,7 +361,12 @@ def _calibrate_shadow(
     if mark_amplitude(work, at_floor, region) >= target_amp:
         return 0.0
     strength, _marked, _amp = calibrate_strength(
-        render, work, region, target_amp, iterations=12,
+        render,
+        work,
+        region,
+        target_amp,
+        bounds=(0.0, CREDIT_DISP_SHADOW_STRENGTH),
+        iterations=12,
     )
     return float(strength)
 
@@ -350,7 +395,7 @@ def apply_credit_displacement(
     rng = np.random.default_rng(seed)
     dx, dy = _random_shift(_SHIFT_PX, rng)
     strength = _calibrate_shadow(image, mask, x, y, dx, dy)
-    return _apply_mask_displacement(
+    marked = _apply_mask_displacement(
         image.copy(),
         mask,
         x,
@@ -360,4 +405,7 @@ def apply_credit_displacement(
         _FEATHER_SIGMA,
         shadow_enabled=True,
         shadow_strength=strength,
+    )
+    return _fade_to_amplitude(
+        image, marked, region, _target_amplitude(image, region),
     )

@@ -7,6 +7,7 @@ import pytest
 
 from core.credit_displacement import (
     CREDIT_CONSPICUITY,
+    CREDIT_MAX_AMPLITUDE,
     apply_credit_displacement,
     content_bbox,
     content_short_side,
@@ -16,7 +17,7 @@ from core.credit_displacement import (
     subject_host_bbox,
 )
 from core.displacement_watermark import apply_displacement_single_at
-from core.host_texture import conspicuity, region_texture
+from core.host_texture import conspicuity, mark_amplitude, region_texture
 from core.visible_edit import apply_visible_edits
 
 
@@ -195,3 +196,51 @@ def test_credit_stamp_hint_pins_subject() -> None:
     assert hint["credit_disp_y"] > 0.55
     assert hint["credit_disp_w"] > 0.0
     assert hint["credit_disp_h"] > 0.0
+
+
+def _gold_fur(h: int = 240, w: int = 320) -> np.ndarray:
+    """Gold chest-fur host in the c024 range (not a floral bouquet)."""
+    rng = np.random.default_rng(1)
+    fur = np.empty((h, w, 3), dtype=np.uint8)
+    fur[:] = (196, 148, 78)
+    return np.clip(fur.astype(np.int16) + rng.integers(-18, 18, fur.shape), 0, 255).astype(np.uint8)
+
+
+def _busy_flowers(h: int = 240, w: int = 320) -> np.ndarray:
+    """High-chroma clutter — the live bouquet case, where 0.24 * host is loud."""
+    rng = np.random.default_rng(2)
+    return rng.integers(0, 255, (h, w, 3), dtype=np.uint8)
+
+
+def _stamp_amp(clean: np.ndarray, marked: np.ndarray, text: str = "Jingwei") -> float:
+    layout = plan_credit_stamp(clean, text)
+    region = np.zeros(clean.shape[:2], dtype=bool)
+    y1 = min(clean.shape[0], layout.y + layout.mask_h)
+    x1 = min(clean.shape[1], layout.x + layout.mask_w)
+    region[layout.y:y1, layout.x:x1] = True
+    return mark_amplitude(clean, marked, region)
+
+
+def test_busy_host_stamp_is_no_darker_than_fur_c024() -> None:
+    """深浅 follows c024 on fur, not 0.24 × floral Sobel (a grey overlay).
+
+    Position may land on petals; the mark still cannot be several times
+    darker than the chest-fur stamp the user locked.
+    """
+    fur = _gold_fur()
+    flowers = _busy_flowers()
+    fur_out = apply_credit_displacement(fur, "Jingwei")
+    flower_out = apply_credit_displacement(flowers, "Jingwei")
+    fur_amp = _stamp_amp(fur, fur_out)
+    flower_amp = _stamp_amp(flowers, flower_out)
+    assert fur_amp > 1.5
+    assert flower_amp > 0.5
+    assert flower_amp <= CREDIT_MAX_AMPLITUDE * 1.15
+    assert fur_amp <= CREDIT_MAX_AMPLITUDE * 1.15
+    assert flower_amp <= fur_amp * 1.35
+
+
+def test_long_word_on_flowers_stays_c024_faint() -> None:
+    flowers = _busy_flowers()
+    out = apply_credit_displacement(flowers, "jwprotect")
+    assert _stamp_amp(flowers, out, "jwprotect") <= CREDIT_MAX_AMPLITUDE * 1.15

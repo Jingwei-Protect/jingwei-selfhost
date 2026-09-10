@@ -17,6 +17,8 @@ by date until the first version tag is cut.
   falls back to the name only when sending.
 - Auto placement searches the largest interior colour mass (the body), not
   the canvas centre, so surrounding flowers do not steal the stamp.
+- Credit Quick stamp faintness is capped at the c024-on-fur depth, so a pin
+  on busy flowers is no darker than the chest-fur stamp.
 
 ## 2026-09-06
 
