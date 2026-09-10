@@ -26,6 +26,7 @@ assert.equal(dogAuto.asciiEnabled, false)
 assert.equal(dogAuto.dispEnabled, true)
 assert.equal(dogAuto.dispFontRatio, CREDIT_DISP_FONT_RATIO)
 assert.equal(dogAuto.dispShift, CREDIT_DISP_SHIFT)
+assert.equal(CREDIT_DISP_SHIFT, 6)
 assert.equal(dogAuto.dispShadowStrength, CREDIT_DISP_SHADOW_STRENGTH)
 
 const dogMixed = nextCreditVisibleLayers('auto', 'mixed')

@@ -1,7 +1,7 @@
 """署名·快速 (credit) visible-layer recipe.
 
-Textured pictures use the dog c024 displacement rung (font 7%, shift 3 px,
-shadow 0.15). Flat illustration-like pictures use a host-colour letter
+Textured pictures use the dog c024 font/shadow (7%, 0.1518) with a 6 px
+warp. Flat illustration-like pictures use a host-colour letter
 grid from the user's 署名, plus one dotted name. White paper keeps the 2b
 name; coloured flats use the nB name. Logo is an extra faint stamp and
 does not turn the letter grid off.
@@ -23,7 +23,7 @@ CREDIT_PAPER_LUMA = 245.0
 CREDIT_ASCII_VISIBILITY = 8
 CREDIT_ASCII_SIGNATURE = 0
 CREDIT_DISP_FONT_RATIO = 0.07
-CREDIT_DISP_SHIFT = 3
+CREDIT_DISP_SHIFT = 6
 CREDIT_DISP_SHADOW_STRENGTH = 0.1518
 CREDIT_LOGO_OPACITY = 0.06
 CREDIT_LOGO_SCALE = 0.08
@@ -207,7 +207,7 @@ def _c024_disp_recipe(
 
     署名·快速 fills displacement text from the artist name, so a non-empty
     string is not a slider the user chose. Credit displacement is always the
-    experimental 7% / 3 px / 0.1518 rung.
+    experimental 7% / 6 px / 0.1518 rung (c024 font and shadow; 6 px warp).
     """
     return CreditRecipe(
         ascii_enabled=False,
@@ -238,8 +238,8 @@ def resolve_credit_recipe(
 ) -> CreditRecipe:
     """Decide which visible layers credit mode should turn on.
 
-    Credit displacement is always the dog c024 rung (7% / 3 px / 0.1518) and
-    never keeps a leftover ASCII grid. ``ascii_faint`` is on for credit + flat
+    Credit displacement is always the dog c024 font/shadow with a 6 px warp
+    and never keeps a leftover ASCII grid. ``ascii_faint`` is on for credit + flat
     so the host-colour grid is used even after the UI auto-enables ASCII.
 
     ``visible_mark``: ``auto`` (flat vs texture), ``ascii`` (cat grid),

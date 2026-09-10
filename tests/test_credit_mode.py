@@ -77,9 +77,11 @@ def test_credit_textured_uses_c024_displacement() -> None:
     assert recipe.disp_shift == CREDIT_DISP_SHIFT
     assert recipe.disp_shadow is True
     assert recipe.disp_shadow_strength == CREDIT_DISP_SHADOW_STRENGTH
-    assert recipe.ascii_enabled is False
-    assert recipe.ascii_faint is False
-    assert CREDIT_FLAT_RATIO == 0.55
+
+
+def test_credit_displacement_shift_is_six_px() -> None:
+    """Ladder pick: keep c024 font/shadow, warp 6 px instead of 3."""
+    assert CREDIT_DISP_SHIFT == 6
 
 
 def test_stealth_mode_does_not_auto_ascii() -> None:

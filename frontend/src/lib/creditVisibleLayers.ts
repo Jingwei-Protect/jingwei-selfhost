@@ -6,7 +6,7 @@ export type CreditHintKind = 'flat' | 'mixed' | 'rich'
 
 /** Dog c024 rung locked into 署名·快速 displacement. */
 export const CREDIT_DISP_FONT_RATIO = 0.07
-export const CREDIT_DISP_SHIFT = 3
+export const CREDIT_DISP_SHIFT = 6
 export const CREDIT_DISP_SHADOW_STRENGTH = 0.1518
 
 export type CreditVisibleLayers = {

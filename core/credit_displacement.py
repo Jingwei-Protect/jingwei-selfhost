@@ -1,8 +1,9 @@
 """署名·快速 displacement stamp — the Doubao dog c024 rung, auto-placed.
 
 c024 is one faintly readable word on chest fur (7% of the subject short
-side, 3 px shift, shadow 0.1518). Doubao often missed it; a person who
-looks at the coat can still find it. That locked recipe is the stamp.
+side, shadow 0.1518). The live warp is 6 px — the ladder rung picked after
+3 px restored too cleanly. Doubao often missed the 3 px chest stamp; 6 px
+keeps the same font/shadow with a stronger geometric shift.
 
 Extra conspicuity calibration and a luma fade made a weaker copy that
 looked empty on the live padded puppy. Those steps are not applied.
@@ -331,7 +332,7 @@ def apply_credit_displacement(
     anchor_y: float | None = None,
     seed: int = 42,
 ) -> np.ndarray:
-    """Paint the locked c024 stamp (7% / 3 px / 0.1518). ``anchor_*`` is the pin centre."""
+    """Paint the locked stamp (7% / 6 px / 0.1518). ``anchor_*`` is the pin centre."""
     if image.dtype != np.uint8 or image.ndim != 3 or image.shape[2] != 3:
         raise ValueError(f"image must be HxWx3 uint8, got {image.shape} {image.dtype}")
     name = (text or "").strip()

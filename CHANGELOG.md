@@ -19,8 +19,8 @@ by date until the first version tag is cut.
   the canvas centre, so surrounding flowers do not steal the stamp.
 - Auto placement prefers a moderate-texture coat window (c024), not the
   busiest petals, so that faintness stays readable.
-- Credit Quick displacement uses the locked Doubao c024 knob (7% / 3 px /
-  0.1518) with no extra fade, so the chest stamp is faintly readable again.
+- Credit Quick displacement uses the locked Doubao c024 font/shadow (7% /
+  0.1518) with a 6 px warp (the chosen ladder rung), and no extra fade.
 
 ## 2026-09-06
 
