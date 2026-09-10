@@ -19,6 +19,8 @@ by date until the first version tag is cut.
   the canvas centre, so surrounding flowers do not steal the stamp.
 - Credit Quick stamp faintness is capped at the c024-on-fur depth, so a pin
   on busy flowers is no darker than the chest-fur stamp.
+- Auto placement prefers a moderate-texture coat window (c024), not the
+  busiest petals, so that faintness stays readable.
 
 ## 2026-09-06
 

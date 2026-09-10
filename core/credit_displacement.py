@@ -9,10 +9,10 @@ locked 0.1518 shadow. It is:
 - 深浅 capped at c024-on-fur amplitude, not ``0.24 × host texture``
 
 A constant conspicuity ratio makes floral hosts a grey overlay: busy Sobel
-allows a large absolute luma/chroma push. c024 on chest fur is ~6 luma;
-that absolute cap is what the eye matches across pictures. Displacement
-that already exceeds the cap is mixed back toward the host (a smaller
-shift does not help once neighbouring petals differ in colour).
+allows a large absolute luma/chroma push. c024 on chest fur is ~6 luma
+region-mean; that cap stays. Auto placement also has to sit on a
+moderate-texture host (the coat). The same depth on the bouquet is
+invisible, which is what happened when search maximised texture.
 """
 
 from __future__ import annotations
@@ -38,11 +38,18 @@ from core.host_texture import (
     calibrate_strength,
     mark_amplitude,
     region_texture,
+    texture_map,
 )
 
 CREDIT_CONSPICUITY = 0.24
-# c024 on gold chest fur is ~6 luma. 0.24 × floral Sobel is many times that.
+# Region-mean luma of c024 on gold fur. 0.24 × floral Sobel is many times that.
 CREDIT_MAX_AMPLITUDE = 6.0
+# c024 chest-fur Sobel. Max-texture search prefers petals, where this depth vanishes.
+CREDIT_HOST_TEXTURE = 40.0
+CREDIT_HOST_TEX_MIN = 8.0
+CREDIT_HOST_TEX_MAX = 70.0
+CREDIT_HOST_LOG_SIGMA = 0.5
+CREDIT_HOST_CENTRALITY = 0.35
 CREDIT_CALIBRATE_MAX_SIDE = 640
 CREDIT_MAX_MARK_WIDTH_RATIO = 0.85
 _BORDER_DIST = 18.0
@@ -193,6 +200,46 @@ def _ink_center(mask: np.ndarray) -> tuple[float, float]:
     return mw / 2.0, mh / 2.0
 
 
+def _c024_host(image: np.ndarray, mark_h: int, mark_w: int) -> tuple[int, int, float]:
+    """Mark-sized window whose texture matches c024 chest fur, not the bouquet.
+
+    ``best_host`` maximises Sobel energy, so petals always win. A c024-depth
+    stamp is readable on moderate-texture coat and disappears in that clutter.
+    Score peaks near ``CREDIT_HOST_TEXTURE``, ignore flats and floral spikes.
+    """
+    h, w = image.shape[:2]
+    if mark_h >= h or mark_w >= w:
+        raise ValueError(f"mark {mark_w}x{mark_h} does not fit in {w}x{h}")
+    local = texture_map(image, mark_h, mark_w)
+    log_tex = np.log1p(local)
+    score = np.exp(
+        -((log_tex - np.log1p(CREDIT_HOST_TEXTURE)) ** 2)
+        / (2.0 * CREDIT_HOST_LOG_SIGMA ** 2)
+    )
+    score = np.where(
+        (local < CREDIT_HOST_TEX_MIN) | (local > CREDIT_HOST_TEX_MAX),
+        0.0,
+        score,
+    )
+    ys, xs = np.mgrid[0:h, 0:w]
+    score = score * np.exp(
+        -(
+            ((xs - w / 2.0) ** 2) / (2 * (w * CREDIT_HOST_CENTRALITY) ** 2)
+            + ((ys - h / 2.0) ** 2) / (2 * (h * CREDIT_HOST_CENTRALITY) ** 2)
+        )
+    )
+    eligible = np.zeros(score.shape, dtype=bool)
+    eligible[
+        mark_h // 2 : h - (mark_h - mark_h // 2),
+        mark_w // 2 : w - (mark_w - mark_w // 2),
+    ] = True
+    score = np.where(eligible, score, -np.inf)
+    if not np.isfinite(score).any() or float(np.nanmax(score)) <= 0.0:
+        return best_host(image, mark_h, mark_w, centrality=CREDIT_HOST_CENTRALITY)
+    cy, cx = np.unravel_index(int(np.argmax(score)), score.shape)
+    return int(cx - mark_w // 2), int(cy - mark_h // 2), float(local[cy, cx])
+
+
 def _place_mask(
     image: np.ndarray,
     mask: np.ndarray,
@@ -200,10 +247,10 @@ def _place_mask(
     anchor_x: float | None,
     anchor_y: float | None,
 ) -> tuple[int, int]:
-    """Top-left of the mask: explicit pin, or ``best_host`` inside the subject.
+    """Top-left of the mask: explicit pin, or a c024-style coat window.
 
-    Search is confined to the largest interior colour mass so a yellow margin
-    plus surrounding flowers cannot park the stamp on the bouquet.
+    Search prefers a moderate-texture coat window (c024), not the busiest
+    petals, so the same faintness is actually readable.
     """
     h, w = image.shape[:2]
     mh, mw = mask.shape
@@ -220,15 +267,15 @@ def _place_mask(
     crop = image[y0:y1, x0:x1]
     ch, cw = crop.shape[:2]
     if mh < ch and mw < cw:
-        x, y, _host = best_host(crop, mh, mw)
+        x, y, _host = _c024_host(crop, mh, mw)
         return x0 + x, y0 + y
     x0, y0, x1, y1 = content_bbox(image)
     crop = image[y0:y1, x0:x1]
     ch, cw = crop.shape[:2]
     if mh < ch and mw < cw:
-        x, y, _host = best_host(crop, mh, mw)
+        x, y, _host = _c024_host(crop, mh, mw)
         return x0 + x, y0 + y
-    x, y, _host = best_host(image, mh, mw)
+    x, y, _host = _c024_host(image, mh, mw)
     return x, y
 
 

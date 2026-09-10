@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pytest
+from PIL import Image
 
 from core.credit_displacement import (
     CREDIT_CONSPICUITY,
@@ -19,6 +22,9 @@ from core.credit_displacement import (
 from core.displacement_watermark import apply_displacement_single_at
 from core.host_texture import conspicuity, mark_amplitude, region_texture
 from core.visible_edit import apply_visible_edits
+
+_ROOT = Path(__file__).resolve().parents[1]
+_SHOWCASE_DOG = _ROOT / "frontend" / "public" / "showcase" / "credit" / "credit-dog-before.png"
 
 
 def _yellow_padded_subject(h: int = 200, w: int = 320, top_pad: int = 400) -> np.ndarray:
@@ -244,3 +250,20 @@ def test_long_word_on_flowers_stays_c024_faint() -> None:
     flowers = _busy_flowers()
     out = apply_credit_displacement(flowers, "jwprotect")
     assert _stamp_amp(flowers, out, "jwprotect") <= CREDIT_MAX_AMPLITUDE * 1.15
+
+
+def test_showcase_puppy_stamp_is_on_the_coat_not_the_bouquet() -> None:
+    """Live padded puppy: max-texture search parks on flowers where c024-depth vanishes.
+
+    c024 is readable because the letters sit on the coat. The same 深浅 on the
+    cyan bouquet is invisible — that is the frame the user could not see.
+    """
+    if not _SHOWCASE_DOG.is_file():
+        pytest.skip("showcase puppy missing")
+    img = np.array(Image.open(_SHOWCASE_DOG).convert("RGB"))
+    layout = plan_credit_stamp(img, "Jingwei")
+    assert layout.anchor_y > 0.45
+    assert 0.15 < layout.anchor_x < 0.52
+    out = apply_credit_displacement(img, "Jingwei")
+    amp = _stamp_amp(img, out)
+    assert amp > 1.5
