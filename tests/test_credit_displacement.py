@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pytest
 from PIL import Image
 
 from core.credit_displacement import (
     CREDIT_CONSPICUITY,
-    CREDIT_MAX_AMPLITUDE,
     apply_credit_displacement,
     content_bbox,
     content_short_side,
@@ -20,11 +20,13 @@ from core.credit_displacement import (
     subject_host_bbox,
 )
 from core.displacement_watermark import apply_displacement_single_at
-from core.host_texture import conspicuity, mark_amplitude, region_texture
+from core.host_texture import conspicuity, region_texture
 from core.visible_edit import apply_visible_edits
 
 _ROOT = Path(__file__).resolve().parents[1]
 _SHOWCASE_DOG = _ROOT / "frontend" / "public" / "showcase" / "credit" / "credit-dog-before.png"
+_DOG_CLEAN = _ROOT / "exports" / "adv-exp" / "ladder_test" / "dog" / "00_clean.png"
+_DOG_C024 = _ROOT / "exports" / "adv-exp" / "ladder_test" / "dog" / "c024.png"
 
 
 def _yellow_padded_subject(h: int = 200, w: int = 320, top_pad: int = 400) -> np.ndarray:
@@ -218,38 +220,51 @@ def _busy_flowers(h: int = 240, w: int = 320) -> np.ndarray:
     return rng.integers(0, 255, (h, w, 3), dtype=np.uint8)
 
 
-def _stamp_amp(clean: np.ndarray, marked: np.ndarray, text: str = "Jingwei") -> float:
-    layout = plan_credit_stamp(clean, text)
-    region = np.zeros(clean.shape[:2], dtype=bool)
-    y1 = min(clean.shape[0], layout.y + layout.mask_h)
-    x1 = min(clean.shape[1], layout.x + layout.mask_w)
-    region[layout.y:y1, layout.x:x1] = True
-    return mark_amplitude(clean, marked, region)
+def _changed_luma(clean: np.ndarray, marked: np.ndarray, *, thresh: float = 2.0) -> float:
+    """Mean luma of pixels the stamp actually moved — the c024 letter depth."""
+    a = cv2.cvtColor(clean, cv2.COLOR_RGB2GRAY).astype(np.float64)
+    b = cv2.cvtColor(marked, cv2.COLOR_RGB2GRAY).astype(np.float64)
+    delta = np.abs(b - a)
+    moved = delta >= thresh
+    if not moved.any():
+        return 0.0
+    return float(delta[moved].mean())
 
 
-def test_busy_host_stamp_is_no_darker_than_fur_c024() -> None:
-    """深浅 follows c024 on fur, not 0.24 × floral Sobel (a grey overlay).
+def test_stamp_on_dog_clean_matches_saved_c024_depth() -> None:
+    """Product must be the Doubao c024 stamp, not a further-faded copy.
 
-    Position may land on petals; the mark still cannot be several times
-    darker than the chest-fur stamp the user locked.
+    Saved c024 is faintly readable on the chest (~18 luma on letter pixels).
+    The extra fade cap cut that to ~7, which is why the live frame looked empty.
     """
+    if not _DOG_CLEAN.is_file() or not _DOG_C024.is_file():
+        pytest.skip("c024 dog fixtures missing")
+    clean = np.array(Image.open(_DOG_CLEAN).convert("RGB"))
+    c024 = np.array(Image.open(_DOG_C024).convert("RGB"))
+    out = apply_credit_displacement(clean, "Jingwei")
+    got = _changed_luma(clean, out)
+    ref = _changed_luma(clean, c024)
+    assert ref > 12.0
+    assert got >= ref * 0.70
+
+
+def test_busy_host_stamp_does_not_pump_past_c024_knob() -> None:
+    """Fixed 0.1518 shadow; do not bisect toward 0.24 × floral Sobel."""
     fur = _gold_fur()
     flowers = _busy_flowers()
     fur_out = apply_credit_displacement(fur, "Jingwei")
     flower_out = apply_credit_displacement(flowers, "Jingwei")
-    fur_amp = _stamp_amp(fur, fur_out)
-    flower_amp = _stamp_amp(flowers, flower_out)
-    assert fur_amp > 1.5
-    assert flower_amp > 0.5
-    assert flower_amp <= CREDIT_MAX_AMPLITUDE * 1.15
-    assert fur_amp <= CREDIT_MAX_AMPLITUDE * 1.15
-    assert flower_amp <= fur_amp * 1.35
+    assert _changed_luma(fur, fur_out) > 4.0
+    assert _changed_luma(flowers, flower_out) > 4.0
+    # Old conspicuity search hit ~30 luma on this noise; c024 letters are ~18.
+    assert _changed_luma(flowers, flower_out) < 24.0
 
 
-def test_long_word_on_flowers_stays_c024_faint() -> None:
+def test_long_word_on_flowers_is_still_a_local_stamp() -> None:
     flowers = _busy_flowers()
     out = apply_credit_displacement(flowers, "jwprotect")
-    assert _stamp_amp(flowers, out, "jwprotect") <= CREDIT_MAX_AMPLITUDE * 1.15
+    assert _changed_frac(flowers, out) < 0.12
+    assert _changed_luma(flowers, out) < 24.0
 
 
 def test_showcase_puppy_stamp_is_on_the_coat_not_the_bouquet() -> None:
@@ -265,5 +280,4 @@ def test_showcase_puppy_stamp_is_on_the_coat_not_the_bouquet() -> None:
     assert layout.anchor_y > 0.45
     assert 0.15 < layout.anchor_x < 0.52
     out = apply_credit_displacement(img, "Jingwei")
-    amp = _stamp_amp(img, out)
-    assert amp > 1.5
+    assert _changed_luma(img, out) > 8.0

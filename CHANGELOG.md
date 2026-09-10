@@ -17,10 +17,10 @@ by date until the first version tag is cut.
   falls back to the name only when sending.
 - Auto placement searches the largest interior colour mass (the body), not
   the canvas centre, so surrounding flowers do not steal the stamp.
-- Credit Quick stamp faintness is capped at the c024-on-fur depth, so a pin
-  on busy flowers is no darker than the chest-fur stamp.
 - Auto placement prefers a moderate-texture coat window (c024), not the
   busiest petals, so that faintness stays readable.
+- Credit Quick displacement uses the locked Doubao c024 knob (7% / 3 px /
+  0.1518) with no extra fade, so the chest stamp is faintly readable again.
 
 ## 2026-09-06
 

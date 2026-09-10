@@ -1,18 +1,14 @@
-"""署名·快速 displacement stamp — one c024-style mark, auto-placed.
+"""署名·快速 displacement stamp — the Doubao dog c024 rung, auto-placed.
 
-The experimental dog c024 rung is not a fixed 7% of the whole canvas plus a
-locked 0.1518 shadow. It is:
+c024 is one faintly readable word on chest fur (7% of the subject short
+side, 3 px shift, shadow 0.1518). Doubao often missed it; a person who
+looks at the coat can still find it. That locked recipe is the stamp.
 
-- one word, once
-- font 7% of the *subject* short side (flat margins do not count)
-- pin at ``best_host`` inside the subject (yellow/sky margins do not count)
-- 深浅 capped at c024-on-fur amplitude, not ``0.24 × host texture``
+Extra conspicuity calibration and a luma fade made a weaker copy that
+looked empty on the live padded puppy. Those steps are not applied.
 
-A constant conspicuity ratio makes floral hosts a grey overlay: busy Sobel
-allows a large absolute luma/chroma push. c024 on chest fur is ~6 luma
-region-mean; that cap stays. Auto placement also has to sit on a
-moderate-texture host (the coat). The same depth on the bouquet is
-invisible, which is what happened when search maximised texture.
+Auto placement sits on a moderate-texture coat window. Maximising Sobel
+parks the same faint word on petals, where it disappears.
 """
 
 from __future__ import annotations
@@ -35,22 +31,17 @@ from core.displacement_watermark import (
 )
 from core.host_texture import (
     best_host,
-    calibrate_strength,
-    mark_amplitude,
     region_texture,
     texture_map,
 )
 
 CREDIT_CONSPICUITY = 0.24
-# Region-mean luma of c024 on gold fur. 0.24 × floral Sobel is many times that.
-CREDIT_MAX_AMPLITUDE = 6.0
 # c024 chest-fur Sobel. Max-texture search prefers petals, where this depth vanishes.
 CREDIT_HOST_TEXTURE = 40.0
 CREDIT_HOST_TEX_MIN = 8.0
 CREDIT_HOST_TEX_MAX = 70.0
 CREDIT_HOST_LOG_SIGMA = 0.5
 CREDIT_HOST_CENTRALITY = 0.35
-CREDIT_CALIBRATE_MAX_SIDE = 640
 CREDIT_MAX_MARK_WIDTH_RATIO = 0.85
 _BORDER_DIST = 18.0
 _SHIFT_PX = CREDIT_DISP_SHIFT
@@ -332,92 +323,6 @@ def credit_stamp_hint(image: np.ndarray, text: str = "Jingwei") -> dict[str, flo
     }
 
 
-def _target_amplitude(image: np.ndarray, region: np.ndarray) -> float:
-    """Allowed luma: min(c024 ratio × host, c024-on-fur absolute)."""
-    host = region_texture(image, region)
-    return min(CREDIT_CONSPICUITY * host, CREDIT_MAX_AMPLITUDE)
-
-
-def _fade_to_amplitude(
-    clean: np.ndarray,
-    marked: np.ndarray,
-    region: np.ndarray,
-    target: float,
-) -> np.ndarray:
-    """Lerp the stamp toward the host when warp-only is already darker than c024.
-
-    Shadow bisection cannot go below displacement-only. On petals that floor
-    already exceeds the fur stamp, so the mix is the faintness knob.
-    """
-    amp = mark_amplitude(clean, marked, region)
-    if amp <= target or amp <= 0.0 or target <= 0.0:
-        return marked
-    mix = target / amp
-    blended = clean.astype(np.float32) * (1.0 - mix) + marked.astype(np.float32) * mix
-    return np.clip(np.round(blended), 0, 255).astype(np.uint8)
-
-
-def _calibrate_shadow(
-    image: np.ndarray,
-    mask: np.ndarray,
-    x: int,
-    y: int,
-    dx: int,
-    dy: int,
-) -> float:
-    """Bisect shadow on a downscaled copy so full-res preview stays cheap.
-
-    Upper bound is the locked c024 knob (0.1518). Floral hosts must not
-    search toward shadow 1.0 to hit ``0.24 × texture``.
-    """
-    h, w = image.shape[:2]
-    scale = min(1.0, CREDIT_CALIBRATE_MAX_SIDE / float(max(h, w)))
-    if scale < 0.999:
-        sw, sh = max(32, int(round(w * scale))), max(32, int(round(h * scale)))
-        small = cv2.resize(image, (sw, sh), interpolation=cv2.INTER_AREA)
-        smh = max(4, int(round(mask.shape[0] * scale)))
-        smw = max(4, int(round(mask.shape[1] * scale)))
-        smask = cv2.resize(mask, (smw, smh), interpolation=cv2.INTER_AREA)
-        sx = int(round(x * scale))
-        sy = int(round(y * scale))
-        sdx = max(1, int(round(dx * scale))) if dx else 0
-        sdy = max(1, int(round(dy * scale))) if dy else 0
-        work, mwork, px, py, ddx, ddy = small, smask, sx, sy, sdx, sdy
-    else:
-        work, mwork, px, py, ddx, ddy = image, mask, x, y, dx, dy
-
-    region = _glyph_region(work.shape[:2], mwork, px, py)
-    target_amp = _target_amplitude(work, region)
-
-    def render(strength: float) -> np.ndarray:
-        return _apply_mask_displacement(
-            work,
-            mwork,
-            px,
-            py,
-            ddx,
-            ddy,
-            _FEATHER_SIGMA,
-            shadow_enabled=True,
-            shadow_strength=float(strength),
-        )
-
-    if target_amp <= 0.0:
-        return 0.0
-    at_floor = render(0.0)
-    if mark_amplitude(work, at_floor, region) >= target_amp:
-        return 0.0
-    strength, _marked, _amp = calibrate_strength(
-        render,
-        work,
-        region,
-        target_amp,
-        bounds=(0.0, CREDIT_DISP_SHADOW_STRENGTH),
-        iterations=12,
-    )
-    return float(strength)
-
-
 def apply_credit_displacement(
     image: np.ndarray,
     text: str,
@@ -426,7 +331,7 @@ def apply_credit_displacement(
     anchor_y: float | None = None,
     seed: int = 42,
 ) -> np.ndarray:
-    """Paint one c024-style displacement stamp. ``anchor_*`` is the pin centre."""
+    """Paint the locked c024 stamp (7% / 3 px / 0.1518). ``anchor_*`` is the pin centre."""
     if image.dtype != np.uint8 or image.ndim != 3 or image.shape[2] != 3:
         raise ValueError(f"image must be HxWx3 uint8, got {image.shape} {image.dtype}")
     name = (text or "").strip()
@@ -441,8 +346,7 @@ def apply_credit_displacement(
         return image.copy()
     rng = np.random.default_rng(seed)
     dx, dy = _random_shift(_SHIFT_PX, rng)
-    strength = _calibrate_shadow(image, mask, x, y, dx, dy)
-    marked = _apply_mask_displacement(
+    return _apply_mask_displacement(
         image.copy(),
         mask,
         x,
@@ -451,8 +355,5 @@ def apply_credit_displacement(
         dy,
         _FEATHER_SIGMA,
         shadow_enabled=True,
-        shadow_strength=strength,
-    )
-    return _fade_to_amplitude(
-        image, marked, region, _target_amplitude(image, region),
+        shadow_strength=CREDIT_DISP_SHADOW_STRENGTH,
     )
